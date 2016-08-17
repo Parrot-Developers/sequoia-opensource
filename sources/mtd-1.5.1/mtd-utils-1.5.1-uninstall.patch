@@ -1,0 +1,18 @@
+diff --git a/Makefile b/Makefile
+index eade234..308d979 100644
+--- a/Makefile
++++ b/Makefile
+@@ -64,9 +62,10 @@ endif
+ install:: $(addprefix $(BUILDDIR)/,${BINS}) ${SCRIPTS}
+ 	mkdir -p ${DESTDIR}/${SBINDIR}
+ 	install -m 0755 $^ ${DESTDIR}/${SBINDIR}/
+-	mkdir -p ${DESTDIR}/${MANDIR}/man1
+-	install -m 0644 mkfs.jffs2.1 ${DESTDIR}/${MANDIR}/man1/
+-	-gzip -9f ${DESTDIR}/${MANDIR}/man1/*.1
++
++uninstall::
++	rm -f $(addprefix ${DESTDIR}/${SBINDIR}/,$(notdir ${TARGETS}))
++	rm -f $(addprefix ${DESTDIR}/${SBINDIR}/,$(notdir ${SCRIPTS}))
+ 
+ tests::
+ 	$(MAKE) -C $(TESTS)

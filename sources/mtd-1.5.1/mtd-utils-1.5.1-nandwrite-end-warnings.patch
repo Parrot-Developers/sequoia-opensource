@@ -1,0 +1,14 @@
+--- mtd-utils-9f10713.orig/nandwrite.c	2014-09-22 10:09:03.000000000 +0200
++++ mtd-utils-9f10713/nandwrite.c	2014-09-22 10:21:46.000000000 +0200
+@@ -617,6 +617,11 @@
+ 		writebuf += pagelen;
+ 	}
+ 
++	if (read(ifd, filebuf, 1) == 1)
++		fprintf(stderr, "There is still input data to read, MTD device is too small!\n");
++	else if (mtdoffset < mtd.size)
++		fprintf(stderr, "No enough input data to flash the entire MTD device!\n");
++
+ 	failed = false;
+ 
+ closeall:
