@@ -21,6 +21,18 @@
 service udevd /usr/bin/ulogwrapper /usr/bin/udevd
     class core
     user root
+    group inet
+    oom_score_adj -1000
+    nice -4
+    # [CHOWN] to change node ownership
+    # [MKNOD] to create node
+    # [NET_ADMIN] udev writes netlink messages and udev's helpers
+    #	may need to configure network.
+    # [SYS_MODULE] udev's helpers may need to load drivers
+    # [SYS_RAWIO] to load firmware (e.g. Wi-Fi)
+    capability  CHOWN	MKNOD	\
+                NET_ADMIN	\
+                SYS_MODULE SYS_RAWIO
 
 on init
     write /proc/sys/kernel/hotplug ""

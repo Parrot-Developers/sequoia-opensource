@@ -1,5 +1,5 @@
 Open Source Software used in **Parrot Sequoia**.  
-Firmware version: **1.0.2**  
+Firmware version: **1.1.0**  
 Unless stated otherwise, later versions of the firmware
 use these same software modules.
 
@@ -20,7 +20,7 @@ You can download Open Source Archives from following table:
 |GPL2|[devmem](sources/devmem-unknown)
 |GPL2|[dnsmasq](sources/dnsmasq-2.66)
 |GPL2|[e2fsprogs](sources/e2fsprogs-1.42.11)
-|GPL2|[linux](sources/linux-unknown)
+|GPL2|[linux](sources/linux-3.4.11)
 |GPL2|[lzo](sources/lzo-2.06)
 |GPL2|[udevadm](sources/udevadm-164)
 |GPL2|[udevd](sources/udevd-164)
@@ -31,6 +31,7 @@ You can download Open Source Archives from following table:
 |LGPL|[libconfig](sources/libconfig-1.5)
 |LGPL|[libnl](sources/libnl-3.2.24)
 |LGPL|[libnl2](sources/libnl2-2.0)
+|LGPL|[packages/libiio](sources/None)
 |LGPL2|[libexif](sources/libexif-0.6.21)
 |LGPL2|[libmedia-ctl](sources/libmedia-ctl-unknown)
 |LGPL2|[libudev](sources/libudev-164)
