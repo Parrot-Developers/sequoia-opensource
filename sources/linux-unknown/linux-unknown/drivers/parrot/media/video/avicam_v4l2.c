@@ -1598,8 +1598,9 @@ static int avicam_open(struct file *file)
 	goto unlock;
 
  no_subdev:
-	v4l2_fh_del(&fh->vfh);
 	file->private_data = NULL;
+	v4l2_fh_del(&fh->vfh);
+	v4l2_fh_exit(&fh->vfh);
 	kfree(fh);
 
  unlock:
@@ -1615,14 +1616,24 @@ static int avicam_open(struct file *file)
 
 static int avicam_release(struct file *file)
 {
-	struct avicam		*avicam = video_drvdata(file);
+	struct avicam    *avicam = video_drvdata(file);
+	struct v4l2_fh   *vfh = file->private_data;
+	struct avicam_fh *fh = to_avicam_fh(vfh);
 	int ret = 0;
 
 	mutex_lock(&avicam->lock);
 
+	file->private_data = NULL;
+	v4l2_fh_del(vfh);
+	v4l2_fh_exit(vfh);
+	kfree(fh);
+
 	avicam->use_count--;
-	if (!avicam->use_count)
+	if (!avicam->use_count) {
+		struct vb2_queue* q = &avicam->vb_vidq;
+		avicam_streamoff(q);
 		ret = vb2_fop_release(file);
+	}
 
 	mutex_unlock(&avicam->lock);
 	return ret;

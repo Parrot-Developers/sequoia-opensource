@@ -344,6 +344,9 @@ config MACH_PARROT_VOLVO_TRUCK
 config MACH_PARROT_VTNA
 	bool "VTNA truck board"
 
+config MACH_PARROT_BORGWARD
+	bool "Borgward board"
+
 config MACH_PARROT_FC7100_TB
 	bool "FC7100 testbench"
 

@@ -24,6 +24,7 @@
 #include <asm/mach-types.h>
 #include <asm/pgtable.h>
 #include <asm/hardware/gic.h>
+#include <asm/system_info.h>
 #include <mach/p7.h>
 #include "common.h"
 #include "system.h"
@@ -1168,25 +1169,6 @@ static void sicilia_configure_leds(void)
 	}
 }
 
-/*************
- * HSIS Sysfs
- *************/
-struct sicilia_hsis {
-	int p7rev;
-	int hwrev;
-} static sicilia_hsis = {
-	.p7rev = -1,
-	.hwrev = -1,
-};
-
-#define SICILIA_HSIS_SYSFS_ATTR(x) DRONE_COMMON_HSIS_SYSFS_ATTR(x, &sicilia_hsis.x)
-struct drone_common_hsis_sysfs_attr sicilia_hsis_sysfs[] = {
-	/* rev */
-	SICILIA_HSIS_SYSFS_ATTR(p7rev),
-	SICILIA_HSIS_SYSFS_ATTR(hwrev),
-	{ .value = NULL, }
-};
-
 static void __init sicilia_init_mach(void)
 {
 	int cam_power_en;
@@ -1200,10 +1182,8 @@ static void __init sicilia_init_mach(void)
 
 	p7_init_gpio(NULL, 0);
 
-	sicilia_hsis.p7rev = p7_chiprev() + 1;
-	sicilia_hsis.hwrev = sicilia_board_get_rev();
-
-	pr_info("sicilia rev %d\n", sicilia_hsis.hwrev);
+	system_rev = sicilia_board_get_rev();
+	pr_info("sicilia rev %d\n", system_rev);
 
 	/* debug uart */
 	p7brd_init_uart(0,0);
@@ -1241,7 +1221,7 @@ static void __init sicilia_init_mach(void)
 	for (i = 0; i < ARRAY_SIZE(sicilia_irq_gpios_filter); i++)
 		p7_gpio_filter_interrupt_register(sicilia_irq_gpios_filter[i]);
 
-	if (sicilia_hsis.hwrev == 0) {
+	if (system_rev == 0) {
 		/* HW00 has no 3.3V ADC ref */
 		p7mu_adc_chan_data.channels = &p7mu_adc_channels[1];
 		p7mu_adc_chan_data.num_channels -= 1;
@@ -1255,7 +1235,7 @@ static void __init sicilia_init_mach(void)
 			 sicilia_sdhci0_pins, ARRAY_SIZE(sicilia_sdhci0_pins));
 
 	/* Enable camera power */
-	switch (sicilia_hsis.hwrev) {
+	switch (system_rev) {
 	case 0:
 		cam_power_en = CAM_POWER_EN_HW00;
 		break;
@@ -1318,10 +1298,20 @@ static void __init sicilia_init_mach(void)
 	p7brd_export_gpio(P7_GPIO_NR(219), GPIOF_IN, "CAM0_BRIDGE_INT_in");
 
 	/* gpio for cam external synchro */
-	if (sicilia_hsis.hwrev >= 3) {
+	if (sicilia_board_get_rev() >= 3) {
+		/* This gpio will be used to generate a sync signal for eBee.
+		 * It will be raised during 10ms each time sicilia captures
+		 * a frame to record.
+		 */
 		p7brd_export_gpio(CAM_SYNCH_OUTPUT, GPIOF_OUT_INIT_LOW, "CAM_SYNCH");
+		/* This gpio allows to enable this signal when eBee is present,
+		 * or to disable it otherwise
+		 */
 		p7brd_export_gpio(MAINCAM_VS_OUTPUT, GPIOF_OUT_INIT_LOW, "EN_CAM_SYNC");
 	} else {
+		/* This gpio will be used to generate a sync signal for eBee
+		 * by enabling the maincam vsync signal during 10ms.
+		 */
 		p7brd_export_gpio(MAINCAM_VS_OUTPUT, GPIOF_OUT_INIT_LOW, "CAM_SYNCH");
 	}
 
@@ -1331,9 +1321,6 @@ static void __init sicilia_init_mach(void)
 	 */
 	sicilia_init_wl18xx();
 	p7brd_export_gpio(PUSH_BUTTON, GPIOF_IN, "wifi-push-button");
-
-	/* Create HSIS entries in sysfs */
-	drone_common_init_sysfs(sicilia_hsis_sysfs);
 }
 
 extern struct sys_timer p7_low_sysclk_tick_timer;

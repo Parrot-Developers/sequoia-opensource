@@ -239,11 +239,18 @@ static void __init mk3_board_probe(void)
 	if (hwrev < MK3_HW06)
 		panic("unsupported board\n");
 
-	/* Displau revision during boot */
+	/* Display revision during boot */
 	pr_info("**************** HARDWARE HW %02d ***********************\n",
 		hwrev);
 	pr_info("****************   PCB REV %02d   ***********************\n",
 		pcbrev);
+
+	/* Compatibility issue when flashed with SW <= 1.98 and updated to 3.x */
+	if(system_rev != mk3_hsis.hwrev) {
+		pr_warn("system_rev != mk3_hsis.hwrev\n");
+		pr_warn("may be caused by an old bootloader\n");
+		system_rev = mk3_hsis.hwrev;
+	}
 
 	/* Configure HSIS with PCB/HW revision */
 	if (hwrev < MK3_HW08) {
@@ -286,7 +293,7 @@ static void __init milos_board_probe(void)
 	hwrev = MK3_HW11 + pcbrev;
 	mk3_hsis.hwrev = hwrev;
 
-	/* Displau revision during boot */
+	/* Display revision during boot */
 	pr_info("**************** HARDWARE HW %02d ***********************\n",
 		hwrev);
 	pr_info("****************   PCB REV %02d   ***********************\n",
@@ -739,7 +746,7 @@ static void __init mykonos3x_init_mach(enum mk3_hardware_board board)
 
 	/* Init USB */
 	drone_common_init_usb(mk3_hsis.host_mode_on, mk3_hsis.host_mode_3v3,
-			      mk3_hsis.usb0_oc);
+			      mk3_hsis.usb0_oc, 0);
 
 	p7brd_init_usb(1, -1, CI_UDC_DR_HOST);
 

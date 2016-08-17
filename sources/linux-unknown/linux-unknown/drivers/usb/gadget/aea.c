@@ -1,5 +1,5 @@
 /*
- * carplay.c -- CDC Composite driver, with ECM and ACM support
+ * eae.c -- Apple External Accessory driver
  *
  * Copyright (C) 2008 David Brownell
  * Copyright (C) 2008 Nokia Corporation
@@ -13,13 +13,9 @@
 #include <linux/kernel.h>
 #include <linux/utsname.h>
 #include <linux/module.h>
-
-#include "u_ether.h"
 #include "u_serial.h"
 
-
-#define DRIVER_DESC		"NCM + iAP2"
-#define DRIVER_VERSION		"King Kamehameha Day 2008"
+#define DRIVER_DESC		"Apple External Accessory iAP2"
 
 /*-------------------------------------------------------------------------*/
 
@@ -35,15 +31,9 @@
 
 /*-------------------------------------------------------------------------*/
 
-/*
- * Kbuild is not very cooperative with respect to linking separately
- * compiled library objects into one module.  So for now we won't use
- * separate compilation ... ensuring init/exit sections work to shrink
- * the runtime footprint, and giving us at least some parts of what
- * a "gcc --combine ... part1.c part2.c part3.c ... " build would.
- */
-
 #define USE_SERIAL_IAP	1 // define for f_serial.c
+
+/*-------------------------------------------------------------------------*/
 
 #include "composite.c"
 #include "usbstring.c"
@@ -51,17 +41,16 @@
 #include "epautoconf.c"
 #include "u_serial.c"
 #include "f_serial.c"
-#include "f_ncm.c"
-#include "u_ether.c"
+#include "aea_serial.c"
 
 /*-------------------------------------------------------------------------*/
+
+static char *app_protocol = "com.unknown.protocol";
 
 static struct usb_device_descriptor device_desc = {
 	.bLength =		sizeof device_desc,
 	.bDescriptorType =	USB_DT_DEVICE,
-
 	.bcdUSB =		cpu_to_le16(0x0200),
-
 	.bDeviceClass =		0x00,
 	.bDeviceSubClass =	0x00,
 	.bDeviceProtocol =	0,
@@ -92,13 +81,10 @@ static const struct usb_descriptor_header *otg_desc[] = {
 	NULL,
 };
 
-
 /* string IDs are assigned dynamically */
 
 #define STRING_MANUFACTURER_IDX		0
 #define STRING_PRODUCT_IDX		1
-
-static char manufacturer[50];
 
 static struct usb_string strings_dev[] = {
 	[STRING_MANUFACTURER_IDX].s = "Parrot",
@@ -116,145 +102,108 @@ static struct usb_gadget_strings *dev_strings[] = {
 	NULL,
 };
 
-static u8 hostaddr[ETH_ALEN];
-
-/*-------------------------------------------------------------------------*/
-
-/*
- * We _always_ have both CDC ECM and CDC ACM functions.
- */
-static int __init cdc_do_config(struct usb_configuration *c)
+static int __init aea_do_config(struct usb_configuration *c)
 {
-	int	status;
+	int status;
 
 	if (gadget_is_otg(c->cdev->gadget)) {
 		c->descriptors = otg_desc;
 		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
 
-
 	status = gser_bind_config(c, 0);
 	if (status < 0)
 		return status;
 
-    status = ncm_bind_config(c, hostaddr);
+	status = gser_aea_bind_config(c, 1, app_protocol);
 	if (status < 0)
 		return status;
 
 	return 0;
 }
 
-static struct usb_configuration cdc_config_driver = {
-	.label			= "Digital iPod Out",
+static struct usb_configuration aea_config_driver = {
+	.label			= "Apple External Accessory",
 	.bConfigurationValue	= 1,
 	/* .iConfiguration = DYNAMIC */
 	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER,
 };
 
-/*-------------------------------------------------------------------------*/
-
-static int __init cdc_bind(struct usb_composite_dev *cdev)
+static int __init aea_bind(struct usb_composite_dev *cdev)
 {
-	int			gcnum;
-	struct usb_gadget	*gadget = cdev->gadget;
-	int			status;
+	struct usb_gadget *gadget = cdev->gadget;
+	int status, gcnum;
 
-	if (!can_support_ecm(cdev->gadget)) {
-		dev_err(&gadget->dev, "controller '%s' not usable\n",
-				gadget->name);
-		return -EINVAL;
-	}
-
-	/* set up network link layer */
-	status = gether_setup(cdev->gadget, hostaddr);
+	/**
+	 * set up serial link layer
+	 * 2 tty are created: one for iap communication,
+	 * another for app communication.
+	 */
+	status = gserial_setup(cdev->gadget, 2);
 	if (status < 0)
 		return status;
 
-	/* set up serial link layer */
-	status = gserial_setup(cdev->gadget, 1);
-	if (status < 0)
-		goto fail0;
-
 	gcnum = usb_gadget_controller_number(gadget);
-	if (gcnum >= 0)
-		device_desc.bcdDevice = cpu_to_le16(0x0300 | gcnum);
-	else {
-		/* We assume that can_support_ecm() tells the truth;
-		 * but if the controller isn't recognized at all then
-		 * that assumption is a bit more likely to be wrong.
-		 */
-		WARNING(cdev, "controller '%s' not recognized; trying %s\n",
-				gadget->name,
-				cdc_config_driver.label);
-		device_desc.bcdDevice =
-			cpu_to_le16(0x0300 | 0x0099);
-	}
+	device_desc.bcdDevice = cpu_to_le16(0x0300 | gcnum);
 
-
-	/* Allocate string descriptor numbers ... note that string
-	 * contents can be overridden by the composite_dev glue.
-	 */
-
-	/* device descriptor strings: manufacturer, product */
-	snprintf(manufacturer, sizeof manufacturer, "%s %s with %s",
-		init_utsname()->sysname, init_utsname()->release,
-		gadget->name);
 	status = usb_string_id(cdev);
 	if (status < 0)
-		goto fail1;
+		goto fail;
+
 	strings_dev[STRING_MANUFACTURER_IDX].id = status;
 	device_desc.iManufacturer = status;
 
 	status = usb_string_id(cdev);
 	if (status < 0)
-		goto fail1;
+		goto fail;
+
 	strings_dev[STRING_PRODUCT_IDX].id = status;
 	device_desc.iProduct = status;
 
 	/* register our configuration */
-	status = usb_add_config(cdev, &cdc_config_driver, cdc_do_config);
+	status = usb_add_config(cdev, &aea_config_driver, aea_do_config);
 	if (status < 0)
-		goto fail1;
+		goto fail;
 
-	dev_info(&gadget->dev, "%s, version: " DRIVER_VERSION "\n",
-			DRIVER_DESC);
-
+	dev_info(&gadget->dev, "%s\n", DRIVER_DESC);
 	return 0;
 
-fail1:
+fail:
 	gserial_cleanup();
-fail0:
-	gether_cleanup();
 	return status;
 }
 
-static int __exit cdc_unbind(struct usb_composite_dev *cdev)
+static int __exit aea_unbind(struct usb_composite_dev *cdev)
 {
 	gserial_cleanup();
-	gether_cleanup();
 	return 0;
 }
 
-static struct usb_composite_driver cdc_driver = {
-	.name		= "g_cdc",
+static struct usb_composite_driver aea_driver = {
+	.name		= "g_aea",
 	.dev		= &device_desc,
 	.strings	= dev_strings,
 	.max_speed	= USB_SPEED_HIGH,
-	.unbind		= __exit_p(cdc_unbind),
+	.unbind		= __exit_p(aea_unbind),
 };
 
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR("David Brownell");
 MODULE_LICENSE("GPL");
 
+/*-------------------------------------------------------------------------*/
+module_param(app_protocol, charp, S_IRUSR);
+MODULE_PARM_DESC(app_protocol, "Application protocol");
+
 static int __init init(void)
 {
-	return usb_composite_probe(&cdc_driver, cdc_bind);
+	printk(KERN_DEBUG "app protocol:'%s'\n", app_protocol);
+	return usb_composite_probe(&aea_driver, aea_bind);
 }
 module_init(init);
 
 static void __exit cleanup(void)
 {
-	usb_composite_unregister(&cdc_driver);
+	usb_composite_unregister(&aea_driver);
 }
 module_exit(cleanup);
