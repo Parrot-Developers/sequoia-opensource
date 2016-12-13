@@ -90,7 +90,7 @@ int bldc_cypress_fetch_data(struct iio_dev *indio_dev)
 
 	result = iio_push_to_buffers_with_timestamp(indio_dev,
 			st->buffer,
-			iio_get_time_ns());
+			iio_get_time_ns(indio_dev));
 	if (result) {
 		/* only warn once in overflow (no iio reader) */
 		if (result != -EBUSY || !st->is_overflow) {
@@ -187,7 +187,7 @@ irqreturn_t bldc_cypress_read_fifo(int irq, void *p)
 
 	result = iio_push_to_buffers_with_timestamp(indio_dev,
 			st->buffer,
-			iio_get_time_ns());
+			iio_get_time_ns(indio_dev));
 	if (result) {
 		/* only warn once in overflow (no iio reader) */
 		if (result != -EBUSY || !st->is_overflow)

@@ -93,7 +93,7 @@ struct avi_multicapt_top {
 	struct device                    *dev;
 	struct avimulti_platform_data    *pdata;
 	spinlock_t                       vbq_lock;
-	struct v4l2_device               v4l2_dev;
+	struct v4l2_device               *v4l2_dev;
 	struct video_device              *vdev;
 	struct list_head                 bufqueue;
 	struct list_head                 bufqueue_active;
@@ -824,9 +824,9 @@ static struct v4l2_subdev* __devinit avimulti_register_subdev(
 	}
 
 	return v4l2_i2c_new_subdev_board(v4l2_dev,
-					   adapter,
-					   devs->board_info,
-					   NULL);
+					 adapter,
+					 devs->board_info,
+					 NULL);
 }
 
 /**
@@ -863,7 +863,6 @@ static int __devinit avimulti_v4l2_init(struct avi_multicapt_top *multicapt_top)
 {
 	struct video_device	*vdev;
 	int			 ret;
-	struct v4l2_device      *v4l2_dev;
 
 	vdev = video_device_alloc();
 	if (vdev == NULL) {
@@ -871,10 +870,11 @@ static int __devinit avimulti_v4l2_init(struct avi_multicapt_top *multicapt_top)
 		goto vdev_alloc_failed;
 	}
 
-	v4l2_dev = &multicapt_top->v4l2_dev;
-	ret = v4l2_device_register(multicapt_top->dev, v4l2_dev);
-	if (ret)
-		goto vdev_alloc_failed;
+	multicapt_top->v4l2_dev = avi_v4l2_get_device();
+	if (!multicapt_top->v4l2_dev) {
+		ret = -ENODEV;
+		goto no_v4l2_dev;
+	}
 
 	multicapt_top->vdev = vdev;
 
@@ -902,25 +902,28 @@ static int __devinit avimulti_v4l2_init(struct avi_multicapt_top *multicapt_top)
 
 	video_set_drvdata(vdev, multicapt_top);
 
-	vdev->v4l2_dev = v4l2_dev;
+	vdev->v4l2_dev = multicapt_top->v4l2_dev;
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret < 0)
 		goto video_register_failed;
 
-	ret = avimulti_register_cameras(multicapt_top, v4l2_dev);
+	ret = avimulti_register_cameras(multicapt_top, multicapt_top->v4l2_dev);
 
 	if (ret < 0) {
 		v4l2_err(vdev, "Couldn't register at least one camera subdev\n");
-		goto video_register_failed;
+		goto camera_register_failed;
 	}
 
 	return 0;
 
+ camera_register_failed:
+	video_unregister_device(multicapt_top->vdev);
  video_register_failed:
 	media_entity_cleanup(&multicapt_top->vdev->entity);
  media_init_failed:
-	/* unregister calls video_device_release */
-	video_unregister_device(multicapt_top->vdev);
+	avi_v4l2_put_device(multicapt_top->v4l2_dev);
+ no_v4l2_dev:
+	video_device_release(multicapt_top->vdev);
  vdev_alloc_failed:
 	return ret;
 }
@@ -1000,10 +1003,28 @@ static int __devinit avimulti_probe(struct platform_device *pdev)
 	return ret;
 }
 
+static void avimulti_unregister_camera(struct avi_multicapt_top	*top)
+{
+	int i;
+
+	for (i = 0; i < top->pdata->nb_cameras; ++i) {
+		struct avi_multicapt_context *ctx =
+			&top->multicapt_contexts[i];
+
+		if (ctx->subdev) {
+			struct i2c_client *client = v4l2_get_subdevdata(ctx->subdev);
+			if(client)
+				i2c_unregister_device(client);
+		}
+	}
+}
+
 static void __devexit avicam_v4l2_destroy(struct avi_multicapt_top	*multicapt_top)
 {
+	avimulti_unregister_camera(multicapt_top);
 	video_unregister_device(multicapt_top->vdev);
-	avi_v4l2_put_device    (&multicapt_top->v4l2_dev);
+	media_entity_cleanup(&multicapt_top->vdev->entity);
+	avi_v4l2_put_device(multicapt_top->v4l2_dev);
 }
 
 static int __devexit avimulti_remove(struct platform_device *pdev)

@@ -204,7 +204,7 @@ static irqreturn_t tcs3472_trigger_handler(int irq, void *p)
 	}
 
 	iio_push_to_buffers_with_timestamp(indio_dev, data->buffer,
-		iio_get_time_ns());
+		iio_get_time_ns(indio_dev));
 
 done:
 	iio_trigger_notify_done(indio_dev->trig);
@@ -366,7 +366,6 @@ static struct i2c_driver tcs3472_driver = {
 	.driver = {
 		.name	= TCS3472_DRV_NAME,
 		.pm	= &tcs3472_pm_ops,
-		.owner	= THIS_MODULE,
 	},
 	.probe		= tcs3472_probe,
 	.remove		= tcs3472_remove,

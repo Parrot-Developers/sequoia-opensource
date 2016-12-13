@@ -107,7 +107,7 @@ static struct reg_cfg ov7740_cfg[] = {
 	{ 0x67, 0x88 },
 	{ 0x68, 0x1A },
 	{ 0x26, 0x72 },
-	{ 0x53, 0x00 },
+	{ 0x53, 0x02 },
 	{ 0x55, 0xC0 },
 	{ 0x56, 0x55 },
 	{ 0x57, 0xFF },
@@ -343,8 +343,8 @@ static int ov7740_apply_expo_window(struct ov7740 *ov7740)
 
 	/* Build YAVG_CTRL register value */
 	reg = 1 << 5;                    /* Manual mode */
-	reg |= ((x >> 8) & 1) << 4;      /* YAGV XOFFSET MSB */
-	reg |= ((y >> 8) & 3);           /* YAGV YOFFSET MSB */
+	reg |= ((y >> 8) & 1) << 4;      /* YAGV YOFFSET MSB */
+	reg |= ((x >> 8) & 3);           /* YAGV XOFFSET MSB */
 
 	ret = set_sub_address(ov7740, 4);
 	if (ret < 0) {
@@ -384,7 +384,7 @@ static int ov7740_apply_expo_window(struct ov7740 *ov7740)
 		return ret;
 	}
 
-	ret = ov7740_i2c_write_byte(ov7740, YAVG_CONFIG, (w / 8) & 0xff);
+	ret = ov7740_i2c_write_byte(ov7740, YAVG_CONFIG, (w / 8) & 0x7f);
 	if (ret < 0) {
 		return ret;
 	}
@@ -395,7 +395,7 @@ static int ov7740_apply_expo_window(struct ov7740 *ov7740)
 		return ret;
 	}
 
-	ret = ov7740_i2c_write_byte(ov7740, YAVG_CONFIG, (h / 4) & 0xff);
+	ret = ov7740_i2c_write_byte(ov7740, YAVG_CONFIG, (h / 4) & 0x7f);
 	if (ret < 0) {
 		return ret;
 	}

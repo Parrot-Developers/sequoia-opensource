@@ -389,7 +389,7 @@ static void poll_temperature(unsigned long data)
 {
 	struct iio_dev *indio_dev = (struct iio_dev *)data;
 	struct temp_gen_state *st = iio_priv(indio_dev);
-	s64 timestamp = iio_get_time_ns();
+	s64 timestamp = iio_get_time_ns(indio_dev);
 
 	iio_push_event(indio_dev,
 			IIO_UNMOD_EVENT_CODE(IIO_TEMP, 0,

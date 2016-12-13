@@ -71,7 +71,7 @@ struct avi_fifo
 
 static __maybe_unused struct avi_fifo *avi_get_fifo(struct avi_node *n)
 {
-	BUG_ON(!n->type == AVI_FIFO_NODE_TYPE);
+	BUG_ON(!(n->type == AVI_FIFO_NODE_TYPE));
 	return container_of(n, struct avi_fifo, avi_node);
 }
 

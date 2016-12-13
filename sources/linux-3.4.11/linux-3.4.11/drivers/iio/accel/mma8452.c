@@ -271,6 +271,108 @@ static int mma8452_write_raw(struct iio_dev *indio_dev,
 	}
 }
 
+static int mma8452_read_event_config(struct iio_dev *indio_dev,
+				     const struct iio_chan_spec *chan,
+				     enum iio_event_type type,
+				     enum iio_event_direction dir)
+{
+	struct mma8452_data *data = iio_priv(indio_dev);
+	const struct mma_chip_info *chip = data->chip_info;
+	int ret;
+
+	ret = i2c_smbus_read_byte_data(data->client,
+				       data->chip_info->ev_cfg);
+	if (ret < 0)
+		return ret;
+
+	return !!(ret & BIT(chan->scan_index + chip->ev_cfg_chan_shift));
+}
+
+static int mma8452_write_event_config(struct iio_dev *indio_dev,
+				      const struct iio_chan_spec *chan,
+				      enum iio_event_type type,
+				      enum iio_event_direction dir,
+				      int state)
+{
+	struct mma8452_data *data = iio_priv(indio_dev);
+	const struct mma_chip_info *chip = data->chip_info;
+	int val;
+
+	val = i2c_smbus_read_byte_data(data->client, chip->ev_cfg);
+	if (val < 0)
+		return val;
+
+	if (state)
+		val |= BIT(chan->scan_index + chip->ev_cfg_chan_shift);
+	else
+		val &= ~BIT(chan->scan_index + chip->ev_cfg_chan_shift);
+
+	val |= chip->ev_cfg_ele;
+	val |= MMA8452_FF_MT_CFG_OAE;
+
+	return mma8452_change_config(data, chip->ev_cfg, val);
+}
+
+static void mma8452_transient_interrupt(struct iio_dev *indio_dev)
+{
+	struct mma8452_data *data = iio_priv(indio_dev);
+	s64 ts = iio_get_time_ns(indio_dev);
+	int src;
+
+	src = i2c_smbus_read_byte_data(data->client, data->chip_info->ev_src);
+	if (src < 0)
+		return;
+
+	if (src & data->chip_info->ev_src_xe)
+		iio_push_event(indio_dev,
+			       IIO_MOD_EVENT_CODE(IIO_ACCEL, 0, IIO_MOD_X,
+						  IIO_EV_TYPE_MAG,
+						  IIO_EV_DIR_RISING),
+			       ts);
+
+	if (src & data->chip_info->ev_src_ye)
+		iio_push_event(indio_dev,
+			       IIO_MOD_EVENT_CODE(IIO_ACCEL, 0, IIO_MOD_Y,
+						  IIO_EV_TYPE_MAG,
+						  IIO_EV_DIR_RISING),
+			       ts);
+
+	if (src & data->chip_info->ev_src_ze)
+		iio_push_event(indio_dev,
+			       IIO_MOD_EVENT_CODE(IIO_ACCEL, 0, IIO_MOD_Z,
+						  IIO_EV_TYPE_MAG,
+						  IIO_EV_DIR_RISING),
+			       ts);
+}
+
+static irqreturn_t mma8452_interrupt(int irq, void *p)
+{
+	struct iio_dev *indio_dev = p;
+	struct mma8452_data *data = iio_priv(indio_dev);
+	const struct mma_chip_info *chip = data->chip_info;
+	int ret = IRQ_NONE;
+	int src;
+
+	src = i2c_smbus_read_byte_data(data->client, MMA8452_INT_SRC);
+	if (src < 0)
+		return IRQ_NONE;
+
+	if (src & MMA8452_INT_DRDY) {
+		iio_trigger_poll_chained(indio_dev->trig);
+		ret = IRQ_HANDLED;
+	}
+
+	if ((src & MMA8452_INT_TRANS &&
+	     chip->ev_src == MMA8452_TRANSIENT_SRC) ||
+	    (src & MMA8452_INT_FF_MT &&
+	     chip->ev_src == MMA8452_FF_MT_SRC)) {
+		mma8452_transient_interrupt(indio_dev);
+		ret = IRQ_HANDLED;
+	}
+
+	return ret;
+}
+
 static irqreturn_t mma8452_trigger_handler(int irq, void *p)
 {
 	struct iio_poll_func *pf = p;
@@ -284,7 +386,7 @@ static irqreturn_t mma8452_trigger_handler(int irq, void *p)
 		goto done;
 
 	iio_push_to_buffers_with_timestamp(indio_dev, buffer,
-		iio_get_time_ns());
+					   iio_get_time_ns(indio_dev));
 
 done:
 	iio_trigger_notify_done(indio_dev->trig);

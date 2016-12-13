@@ -188,7 +188,7 @@ static void avi_limit_adjust(struct avi_dma_pixfmt pixfmt,
 
 	/* P7R2 semiplanar limitation : width have to be at least 112 pixels */
 	if (AVI_REVISION_2 == avi_get_revision() && pixfmt.semiplanar
-	    && ((type == AVI_LIMIT_WIDTH) && (type == AVI_LIMIT_WIDTH_STRIP))
+	    && ((type == AVI_LIMIT_WIDTH) || (type == AVI_LIMIT_WIDTH_STRIP))
 	    && (*val < 112))
 		*val = 112;
 }

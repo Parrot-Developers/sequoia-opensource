@@ -973,7 +973,7 @@ static irqreturn_t bmg160_data_rdy_trig_poll(int irq, void *private)
 	struct iio_dev *indio_dev = private;
 	struct bmg160_data *data = iio_priv(indio_dev);
 
-	data->timestamp = iio_get_time_ns();
+	data->timestamp = iio_get_time_ns(indio_dev);
 
 	if (data->dready_trigger_on)
 		iio_trigger_poll(data->dready_trig);

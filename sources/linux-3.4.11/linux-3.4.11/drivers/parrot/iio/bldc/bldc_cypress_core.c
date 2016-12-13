@@ -67,11 +67,19 @@ static ssize_t bldc_cypress_store_led(struct device *dev,
 	u8 data;
 	int ret;
 
+	/**
+	 * data is a bitmask :
+	 *  b0: Red LED on/off
+	 *  b1: Green LED on/off
+	 *  b2: linux reboot strategy: reboot/power off
+	 */
 	ret = kstrtou8(buf, 10, &data);
 	if (ret)
 		return -EINVAL;
 
 	data &= 0x3; /* Set P7 reboot gpio bit to zero */
+	data |= 0x4; /* Keep psoc_on */
+
 	ret = st->tf->write_multiple_byte(st->dev,
 			PARROT_BLDC_REG_LED, 1, &data);
 
@@ -111,20 +119,6 @@ static ssize_t bldc_cypress_store_motors_speed(struct device *dev,
 
 	ret = st->tf->write_multiple_byte(st->dev,
 			PARROT_BLDC_REG_REF_SPEED, 10, data);
-
-	return ret == 0 ? count : ret;
-}
-
-static ssize_t bldc_cypress_store_reboot(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct iio_dev *indio_dev = dev_to_iio_dev(dev);
-	struct bldc_state *st = iio_priv(indio_dev);
-	u8 data = 4;
-	int ret;
-
-	ret = st->tf->write_multiple_byte(st->dev,
-			PARROT_BLDC_REG_LED, 1, &data);
 
 	return ret == 0 ? count : ret;
 }
@@ -334,12 +328,6 @@ static IIO_DEVICE_ATTR(led,
 		       bldc_cypress_store_led,
 		       ATTR_LED);
 
-static IIO_DEVICE_ATTR(reboot,
-		       S_IWUSR,
-		       NULL,
-		       bldc_cypress_store_reboot,
-		       ATTR_REBOOT);
-
 static IIO_DEVICE_ATTR(clear_error,
 		       S_IWUSR,
 		       NULL,
@@ -405,7 +393,6 @@ static struct attribute *inv_attributes[] = {
 	&iio_dev_attr_start_with_dir.dev_attr.attr,
 	&iio_dev_attr_stop.dev_attr.attr,
 	&iio_dev_attr_led.dev_attr.attr,
-	&iio_dev_attr_reboot.dev_attr.attr,
 	&iio_dev_attr_clear_error.dev_attr.attr,
 	&iio_dev_attr_motors_speed.dev_attr.attr,
 	&iio_dev_attr_soft_version.dev_attr.attr,
@@ -511,6 +498,7 @@ int bldc_cypress_probe(struct iio_dev *indio_dev)
 {
 	struct bldc_state *st;
 	int result, i;
+	u8 data;
 
 	st = iio_priv(indio_dev);
 
@@ -543,6 +531,13 @@ int bldc_cypress_probe(struct iio_dev *indio_dev)
 		goto out_remove_trigger;
 	}
 
+	/* Set psoc_on */
+	data = 0x4;
+	result = st->tf->write_multiple_byte(st->dev,
+			PARROT_BLDC_REG_LED, sizeof(data), &data);
+	if (result != sizeof(data))
+		dev_err(st->dev, "fail to set psoc_on : %d\n", result);
+
 	dev_info(st->dev,
 		 "PARROT BLDC (%s) registered\n",
 		 indio_dev->name);
@@ -565,6 +560,19 @@ void bldc_cypress_remove(struct iio_dev *indio_dev)
 	kfree(st->cache);
 }
 EXPORT_SYMBOL(bldc_cypress_remove);
+
+void bldc_cypress_shutdown(struct iio_dev *indio_dev)
+{
+	struct bldc_state *st = iio_priv(indio_dev);
+	u8 data = 0;
+	int ret;
+
+	ret = st->tf->write_multiple_byte(st->dev,
+			PARROT_BLDC_REG_LED, sizeof(data), &data);
+	if (ret != sizeof(data))
+		dev_err(st->dev, "shutdown fail %d\n", ret);
+}
+EXPORT_SYMBOL(bldc_cypress_shutdown);
 
 MODULE_AUTHOR("Karl Leplat <karl.leplat@parrot.com>");
 MODULE_DESCRIPTION("Parrot BLDC cypress IIO driver");

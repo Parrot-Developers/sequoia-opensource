@@ -654,7 +654,7 @@ static irqreturn_t bma180_trigger_handler(int irq, void *p)
 	struct iio_poll_func *pf = p;
 	struct iio_dev *indio_dev = pf->indio_dev;
 	struct bma180_data *data = iio_priv(indio_dev);
-	int64_t time_ns = iio_get_time_ns();
+	s64 time_ns = iio_get_time_ns(indio_dev);
 	int bit, ret, i = 0;
 
 	mutex_lock(&data->mutex);
@@ -846,7 +846,6 @@ MODULE_DEVICE_TABLE(i2c, bma180_ids);
 static struct i2c_driver bma180_driver = {
 	.driver = {
 		.name	= "bma180",
-		.owner	= THIS_MODULE,
 		.pm	= BMA180_PM_OPS,
 	},
 	.probe		= bma180_probe,

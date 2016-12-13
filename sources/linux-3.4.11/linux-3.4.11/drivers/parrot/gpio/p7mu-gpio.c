@@ -164,7 +164,7 @@ static void p7mu_show_gpio(struct seq_file* seq, struct gpio_chip* chip)
 		P7MU_ASSERT_GPIO(chip, gpio);
 
 		if (label) {
-			char const* dir = dir;
+			char const* dir;
 			int         irq;
 
 			switch (p7mu_pin_mux(gpio)) {
@@ -175,8 +175,9 @@ static void p7mu_show_gpio(struct seq_file* seq, struct gpio_chip* chip)
 			case P7MU_OUTGPIO_MUX:
 				dir = "out";
 				break;
-#ifdef DEBUG
 			default:
+				dir = "?";
+#ifdef DEBUG
 				BUG();
 #endif
 			}

@@ -307,10 +307,40 @@ static irqreturn_t ltr501_trigger_handler(int irq, void *p)
 	}
 
 	iio_push_to_buffers_with_timestamp(indio_dev, buf,
-		iio_get_time_ns());
+					   iio_get_time_ns(indio_dev));
 
 done:
 	iio_trigger_notify_done(indio_dev->trig);
+
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t ltr501_interrupt_handler(int irq, void *private)
+{
+	struct iio_dev *indio_dev = private;
+	struct ltr501_data *data = iio_priv(indio_dev);
+	int ret, status;
+
+	ret = regmap_read(data->regmap, LTR501_ALS_PS_STATUS, &status);
+	if (ret < 0) {
+		dev_err(&data->client->dev,
+			"irq read int reg failed\n");
+		return IRQ_HANDLED;
+	}
+
+	if (status & LTR501_STATUS_ALS_INTR)
+		iio_push_event(indio_dev,
+			       IIO_UNMOD_EVENT_CODE(IIO_INTENSITY, 0,
+						    IIO_EV_TYPE_THRESH,
+						    IIO_EV_DIR_EITHER),
+			       iio_get_time_ns(indio_dev));
+
+	if (status & LTR501_STATUS_PS_INTR)
+		iio_push_event(indio_dev,
+			       IIO_UNMOD_EVENT_CODE(IIO_PROXIMITY, 0,
+						    IIO_EV_TYPE_THRESH,
+						    IIO_EV_DIR_EITHER),
+			       iio_get_time_ns(indio_dev));
 
 	return IRQ_HANDLED;
 }
@@ -431,7 +461,6 @@ static struct i2c_driver ltr501_driver = {
 	.driver = {
 		.name   = LTR501_DRV_NAME,
 		.pm	= &ltr501_pm_ops,
-		.owner  = THIS_MODULE,
 	},
 	.probe  = ltr501_probe,
 	.remove	= ltr501_remove,

@@ -189,7 +189,7 @@ static irqreturn_t isl29125_trigger_handler(int irq, void *p)
 	}
 
 	iio_push_to_buffers_with_timestamp(indio_dev, data->buffer,
-		iio_get_time_ns());
+		iio_get_time_ns(indio_dev));
 
 done:
 	iio_trigger_notify_done(indio_dev->trig);
@@ -334,7 +334,6 @@ static struct i2c_driver isl29125_driver = {
 	.driver = {
 		.name	= ISL29125_DRV_NAME,
 		.pm	= &isl29125_pm_ops,
-		.owner	= THIS_MODULE,
 	},
 	.probe		= isl29125_probe,
 	.remove		= isl29125_remove,

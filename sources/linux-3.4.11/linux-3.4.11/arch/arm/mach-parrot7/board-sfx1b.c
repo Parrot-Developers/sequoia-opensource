@@ -52,6 +52,13 @@
 
 #define SFX1B_BRD_NAME "sfx1b"
 
+/*
+ * We shall chose Galileo1 or Galileo2 as maicam
+ */
+#if defined(CONFIG_VIDEO_GALILEO1) && defined(CONFIG_VIDEO_GALILEO2)
+#error "Error : Galileo1 and Galileo2 defined !"
+#endif
+
 /* Macro to simplify definition of GPIO keys */
 #define RX_KEYS_GPIO(_gpio, _code, _active_low, _desc)\
 {\
@@ -96,7 +103,7 @@ static struct p7pwm_conf sfx1b_conf_clock_tc358746a_p7_tegra = {
 };
 
 
-static struct p7pwm_conf sfx1b_conf_clock_maincam_galileo1 = {
+static struct p7pwm_conf sfx1b_conf_clock_maincam_galileo = {
 	.period_precision = 5,
 	.duty_precision   = 0,
 	.mode             = P7PWM_MODE_CLOCK,
@@ -117,7 +124,7 @@ static struct p7pwm_conf sfx1b_conf_front_led = {
 static struct p7pwm_pdata sfx1b_pwm_pdata = {
 	.conf = {
 		[ 3] = &sfx1b_conf_front_led,
-		[ 4] = &sfx1b_conf_clock_maincam_galileo1,
+		[ 4] = &sfx1b_conf_clock_maincam_galileo,
 		[ 5] = &sfx1b_conf_clock_OV7740, /* right camera */
 		[ 6] = &sfx1b_conf_clock_OV7740, /* left camera */
 		[ 7] = &sfx1b_conf_clock_OV7740, /* bottom camera */
@@ -182,15 +189,15 @@ static struct platform_device p7_gpio_keys_device = {
  * AVI
  *************/
 /* Nokia Galielo1 Sensor */
-#define GALILEO1_WIDTH      7728
-#define GALILEO1_HEIGHT     5368
-#define GALILEO1_PIXEL_SIZE    2
-#define GALILEO1_N_BUFFERS     4
+#define GALILEO_WIDTH      7728
+#define GALILEO_HEIGHT     5368
+#define GALILEO_PIXEL_SIZE    2
+#define GALILEO_N_BUFFERS     4
 
-#define P7_GALILEO1_AVI_RAM_SIZE PAGE_ALIGN(GALILEO1_WIDTH *      \
-                                            GALILEO1_HEIGHT *     \
-                                            GALILEO1_PIXEL_SIZE * \
-                                            GALILEO1_N_BUFFERS)
+#define P7_GALILEO_AVI_RAM_SIZE PAGE_ALIGN(GALILEO_WIDTH *      \
+					   GALILEO_HEIGHT *     \
+					   GALILEO_PIXEL_SIZE * \
+					   GALILEO_N_BUFFERS)
 
 static struct pinctrl_map sfx1b_maincam_pins[] __initdata = {
 	P7_INIT_PINMAP(P7_CAM_0_VS),
@@ -258,20 +265,30 @@ static int sfx1b_pwm_power_off(struct pwm_device **dev)
 	return 0;
 }
 
+#if defined(CONFIG_VIDEO_GALILEO2)
+#include <media/galileo2.h>
+#define MAINCAM_GALILEO_REFCLK      8928571
+#define GALILEO_POWER_ON            GALILEO2_POWER_ON
+#define GALILEO_POWER_OFF           GALILEO2_POWER_OFF
+#else
 #include <media/galileo1.h>
+#define MAINCAM_GALILEO_REFCLK      9200000
+#define GALILEO_POWER_ON            GALILEO1_POWER_ON
+#define GALILEO_POWER_OFF           GALILEO1_POWER_OFF
+#endif
 
-#define MAINCAM_GALILEO1_REFCLK       9200000
-#define MAINCAM_GALILEO1_I2C_BUS            1
-#define MAINCAM_GALILEO1_MIPI_LANES         2
+#define GALILEO_SENSOR_I2C_ADDR     0x10
+#define MAINCAM_GALILEO_I2C_BUS        1
+#define MAINCAM_GALILEO_MIPI_LANES     2
 
-static struct pwm_device *sfx1b_maincam_galileo1_pwm = NULL;
+static struct pwm_device *sfx1b_maincam_galileo_pwm = NULL;
 
-static int sfx1b_maincam_galileo1_power_on(void)
+static int sfx1b_maincam_galileo_power_on(void)
 {
-	int ret = sfx1b_pwm_power_on(&sfx1b_maincam_galileo1_pwm,
+	int ret = sfx1b_pwm_power_on(&sfx1b_maincam_galileo_pwm,
 				     4,
-				     "maincam-galileo1",
-				     1000000000 / MAINCAM_GALILEO1_REFCLK);
+				     "maincam-galileo",
+				     1000000000 / MAINCAM_GALILEO_REFCLK);
 
 	/* Make sure the power is on */
 	if (ret == 0)
@@ -280,28 +297,36 @@ static int sfx1b_maincam_galileo1_power_on(void)
 	return ret;
 }
 
-static int sfx1b_maincam_galileo1_power_off(void)
+static int sfx1b_maincam_galileo_power_off(void)
 {
-	return sfx1b_pwm_power_off(&sfx1b_maincam_galileo1_pwm);
+	return sfx1b_pwm_power_off(&sfx1b_maincam_galileo_pwm);
 }
 
-static int sfx1b_maincam_galileo1_set_power(int on)
+static int sfx1b_maincam_galileo_set_power(int on)
 {
-	if (on == GALILEO1_POWER_ON)
-		return sfx1b_maincam_galileo1_power_on();
+	if (on == GALILEO_POWER_ON)
+		return sfx1b_maincam_galileo_power_on();
 	else
-		return sfx1b_maincam_galileo1_power_off();
+		return sfx1b_maincam_galileo_power_off();
 }
 
-static struct galileo1_platform_data sfx1b_maincam_galileo1_pdata = {
-	.set_power = &sfx1b_maincam_galileo1_set_power,
-	.refclk    = MAINCAM_GALILEO1_REFCLK,
-	.lanes     = MAINCAM_GALILEO1_MIPI_LANES,
+#if defined(CONFIG_VIDEO_GALILEO2)
+static struct galileo2_platform_data sfx1b_maincam_galileo_pdata = {
+#else
+static struct galileo1_platform_data sfx1b_maincam_galileo_pdata = {
+#endif
+	.set_power = &sfx1b_maincam_galileo_set_power,
+	.refclk    = MAINCAM_GALILEO_REFCLK,
+	.lanes     = MAINCAM_GALILEO_MIPI_LANES,
 };
 
-static struct i2c_board_info sfx1b_maincam_galileo1_i2c_device = {
-	I2C_BOARD_INFO("galileo1", GALILEO1_SENSOR_I2C_ADDR),
-	.platform_data = &sfx1b_maincam_galileo1_pdata,
+static struct i2c_board_info sfx1b_maincam_galileo_i2c_device = {
+#if defined(CONFIG_VIDEO_GALILEO2)
+	I2C_BOARD_INFO("galileo2", GALILEO_SENSOR_I2C_ADDR),
+#else
+	I2C_BOARD_INFO("galileo1", GALILEO_SENSOR_I2C_ADDR),
+#endif
+	.platform_data = &sfx1b_maincam_galileo_pdata,
 };
 
 /* EEPROM M24C64 */
@@ -333,10 +358,10 @@ static struct i2c_board_info as3636_i2c_device = {
 	.platform_data = &as3636_pdata,
 };
 
-static struct avicam_subdevs sfx1b_maincam_galileo1_subdevs[] = {
+static struct avicam_subdevs sfx1b_maincam_galileo_subdevs[] = {
 	{
-		.board_info     = &sfx1b_maincam_galileo1_i2c_device,
-		.i2c_adapter_id = MAINCAM_GALILEO1_I2C_BUS,
+		.board_info     = &sfx1b_maincam_galileo_i2c_device,
+		.i2c_adapter_id = MAINCAM_GALILEO_I2C_BUS,
 		.subdevs        = NULL,
 	},
 	{ NULL, 0 },
@@ -345,9 +370,13 @@ static struct avicam_subdevs sfx1b_maincam_galileo1_subdevs[] = {
 #include <media/tc358746a.h>
 
 #define MAINCAM_TC358746A_NRST_GPIO       115
+#if defined(CONFIG_VIDEO_GALILEO2)
+#define MAINCAM_TC358746A_REFCLK      8928571
+#else
 #define MAINCAM_TC358746A_REFCLK      9200000
+#endif
 #define MAINCAM_TC358746A_I2C_BUS          20
-#define MAINCAM_TC358746A_MIPI_LANES MAINCAM_GALILEO1_MIPI_LANES
+#define MAINCAM_TC358746A_MIPI_LANES MAINCAM_GALILEO_MIPI_LANES
 
 static int sfx1b_maincam_tc358746a_power_on(void)
 {
@@ -388,7 +417,12 @@ static struct tc358746a_platform_data sfx1b_maincam_tc358746a_pdata = {
 	.set_power = &sfx1b_maincam_tc358746a_set_power,
 	.refclk    = MAINCAM_TC358746A_REFCLK,
 	.lanes     = MAINCAM_TC358746A_MIPI_LANES,
+#if defined(CONFIG_VIDEO_GALILEO2)
+	.calibration_delay_ms = 50,
+	.phytimdly            = 27,
+#else
 	.phytimdly = 9,
+#endif
 };
 
 static struct i2c_board_info sfx1b_maincam_tc358746a_i2c_device = {
@@ -400,7 +434,7 @@ static struct avicam_subdevs sfx1b_maincam_tc358746a_subdevs[] = {
 	{
 		.board_info     = &sfx1b_maincam_tc358746a_i2c_device,
 		.i2c_adapter_id = MAINCAM_TC358746A_I2C_BUS,
-		.subdevs        = sfx1b_maincam_galileo1_subdevs,
+		.subdevs        = sfx1b_maincam_galileo_subdevs,
 	},
 	{
 		.board_info     = &as3636_i2c_device,
@@ -413,8 +447,8 @@ static struct avicam_subdevs sfx1b_maincam_tc358746a_subdevs[] = {
 /* Galileo1 sensor follows the SMIA specification, hence the first 4 lines
  * contains its registers values. So we crop it directly here.
  */
-static void sfx1b_galileo1_get_timings(struct avi_capture_timings  *t,
-				       struct avi_cam_measure_regs *m)
+static void sfx1b_galileo_get_timings(struct avi_capture_timings  *t,
+				      struct avi_cam_measure_regs *m)
 {
 	t->ht.hactive_on  = 0;
 	t->ht.hactive_off = m->hsync_off;
@@ -436,7 +470,7 @@ static struct avicam_platform_data sfx1b_maincam_pdata = {
 	},
 	.bus_width	    = 10,
 	.subdevs	    = sfx1b_maincam_tc358746a_subdevs,
-	.measure_to_timings = &sfx1b_galileo1_get_timings,
+	.measure_to_timings = &sfx1b_galileo_get_timings,
 	.vb2_cache_flags    = VB2_CACHE_DMA_CONTIG | VB2_CACHE_WRITETHROUGH,
 };
 
@@ -1188,7 +1222,7 @@ static void __init sfx1b_reserve_mem(void)
 	p7_reserve_vencmem(SFX1_HX280_SIZE);
 
 	p7_reserve_avicammem(&sfx1b_maincam_dev,
-			     P7_GALILEO1_AVI_RAM_SIZE);
+			     P7_GALILEO_AVI_RAM_SIZE);
 
 	/* Reserve enough memory for 8 buffers at 16bpp */
 	ov_cam_sz = sfx1b_ov_cam_format.width *

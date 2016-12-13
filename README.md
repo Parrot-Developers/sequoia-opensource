@@ -1,5 +1,5 @@
 Open Source Software used in **Parrot Sequoia**.  
-Firmware version: **1.1.0**  
+Firmware version: **1.2.0**  
 Unless stated otherwise, later versions of the firmware
 use these same software modules.
 
@@ -14,7 +14,7 @@ You can download Open Source Archives from following table:
 |---|---
 |GPL|[busybox](sources/busybox-unknown)
 |GPL|[libelf](sources/libelf-0.152)
-|GPL|[ltrace](sources/None)
+|GPL|[ltrace](sources/ltrace-0.7.91)
 |GPL|[mtd](sources/mtd-1.5.1)
 |GPL|[procps](sources/procps-3.2.8)
 |GPL2|[devmem](sources/devmem-unknown)
@@ -25,22 +25,22 @@ You can download Open Source Archives from following table:
 |GPL2|[udevadm](sources/udevadm-164)
 |GPL2|[udevd](sources/udevd-164)
 |GPL2|[usbutils](sources/usbutils-006)
-|GPL2|[util-linux-ng](sources/util-linux-ng-2.26)
+|GPL2|[util-linux-ng](sources/util-linux-ng-2.28)
 |GPL2|[wireless_tools](sources/wireless_tools-29)
 |LGPL|[libc-arm-2012-03-fix](sources/libc-arm-2012-03-fix-unknown)
 |LGPL|[libconfig](sources/libconfig-1.5)
 |LGPL|[libnl](sources/libnl-3.2.24)
 |LGPL|[libnl2](sources/libnl2-2.0)
-|LGPL|[packages/libiio](sources/None)
 |LGPL2|[libexif](sources/libexif-0.6.21)
+|LGPL2|[libiio](sources/libiio-unknown)
 |LGPL2|[libmedia-ctl](sources/libmedia-ctl-unknown)
 |LGPL2|[libudev](sources/libudev-164)
 |LGPL2|[libudev-private](sources/libudev-private-164)
 |LGPL2|[libusb_1_0](sources/libusb_1_0-1.0.19)
-|LGPL2|[util-linux-ng (lib/canonicalize.c)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (lib/fileutils.c)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (lib/randutils.c)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (lib/strutils.c)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (libblkid)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (libfdisk)](sources/util-linux-ng-2.26)
-|LGPL2|[util-linux-ng (libmount)](sources/util-linux-ng-2.26)
+|LGPL2|[util-linux-ng (lib/canonicalize.c)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (lib/fileutils.c)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (lib/randutils.c)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (lib/strutils.c)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (libblkid)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (libfdisk)](sources/util-linux-ng-2.28)
+|LGPL2|[util-linux-ng (libmount)](sources/util-linux-ng-2.28)

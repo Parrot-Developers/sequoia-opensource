@@ -1287,6 +1287,11 @@ static int galileo1_apply_flash_strobe(struct v4l2_subdev *sd)
 		                 				     * 1000) / 108);
 
 	} else {
+		/* Reset the RS trigger to be able
+		 * to change the config on the fly
+		 */
+		galileo1_write8(i2c, FLASH_TRIGGER_RS, 0x0);
+
 		/* Rolling shutter mode (video) */
 		galileo1_write16(i2c, TFLASH_STROBE_WIDTH_HIGH_RS_CTRL, (galileo1->strobe_width->val
 		                 					* 1000) / 108);
@@ -1561,8 +1566,8 @@ static int galileo1_s_stream(struct v4l2_subdev *sd, int enable)
 	galileo1_set_shutter(sd);
 	galileo1_apply_hflip(sd);
 	galileo1_apply_vflip(sd);
-	galileo1_apply_nd(sd);
 	galileo1_apply_ms(sd);
+	galileo1_apply_nd(sd);
 	galileo1_apply_flash_strobe(sd);
 	galileo1_write8(galileo1->i2c_sensor, MODE_SELECT, 0x01);
 

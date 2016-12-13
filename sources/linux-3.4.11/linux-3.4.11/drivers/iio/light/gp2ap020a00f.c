@@ -850,7 +850,7 @@ static irqreturn_t gp2ap020a00f_prox_sensing_handler(int irq, void *data)
 				    GP2AP020A00F_SCAN_MODE_PROXIMITY,
 				    IIO_EV_TYPE_ROC,
 				    IIO_EV_DIR_RISING),
-			       iio_get_time_ns());
+			       iio_get_time_ns(indio_dev));
 		} else {
 			iio_push_event(indio_dev,
 			       IIO_UNMOD_EVENT_CODE(
@@ -858,7 +858,7 @@ static irqreturn_t gp2ap020a00f_prox_sensing_handler(int irq, void *data)
 				    GP2AP020A00F_SCAN_MODE_PROXIMITY,
 				    IIO_EV_TYPE_ROC,
 				    IIO_EV_DIR_FALLING),
-			       iio_get_time_ns());
+			       iio_get_time_ns(indio_dev));
 		}
 	}
 
@@ -924,7 +924,7 @@ static irqreturn_t gp2ap020a00f_thresh_event_handler(int irq, void *data)
 					    IIO_MOD_LIGHT_CLEAR,
 					    IIO_EV_TYPE_THRESH,
 					    IIO_EV_DIR_RISING),
-				       iio_get_time_ns());
+				       iio_get_time_ns(indio_dev));
 		}
 
 		if (test_bit(GP2AP020A00F_FLAG_ALS_FALLING_EV, &priv->flags)) {
@@ -938,7 +938,7 @@ static irqreturn_t gp2ap020a00f_thresh_event_handler(int irq, void *data)
 					    IIO_MOD_LIGHT_CLEAR,
 					    IIO_EV_TYPE_THRESH,
 					    IIO_EV_DIR_FALLING),
-				       iio_get_time_ns());
+				       iio_get_time_ns(indio_dev));
 		}
 	}
 
@@ -1640,7 +1640,6 @@ static struct i2c_driver gp2ap020a00f_driver = {
 	.driver = {
 		.name	= GP2A_I2C_NAME,
 		.of_match_table = of_match_ptr(gp2ap020a00f_of_match),
-		.owner	= THIS_MODULE,
 	},
 	.probe		= gp2ap020a00f_probe,
 	.remove		= gp2ap020a00f_remove,

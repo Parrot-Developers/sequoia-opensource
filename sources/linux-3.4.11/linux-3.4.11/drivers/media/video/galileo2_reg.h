@@ -13,47 +13,51 @@
 #define GALILEO2_CHIPID             0x2170
 
 /*
- * PMIC: ADV5814
+ * PMIC: MAX14638
  */
-#define IC_INFO                     0x0000
-#define IC_VERSION                  0x0001
-#define FOCUS_CHANGE                0x0002
-#define FOCUS_CHANGE_CONTROL        0x0005
-#define FOCUS_CHANGE_NUMBER_PHASE_1 0x0006
-#define FOCUS_CHANGE_NUMBER_PHASE_2 0x0008
-#define STROBE_COUNT_PHASE_1        0x000A
-#define STROBE_COUNT_PHASE_2        0x000B
-#define POSITION                    0x000C
-#define MECH_SHUTTER_CONTROL        0x000E
-#define OPERATION_MODE              0x000F
-#define ACT_STATE_1                 0x0010
-#define ACT_STATE_2                 0x0011
-#define CONTROL                     0x0012
-#define DRIVE_CFG                   0x0013
-#define BUCK_CFG                    0x0014
-#define TIMING                      0x0015
-#define CONFIG                      0x0016
-#define PERIOD                      0x0017
-#define TAH                         0x0018
-#define TAL                         0x0019
-#define TBH                         0x001A
-#define TBL                         0x001B
-#define NR_CFG                      0x001C
-#define NR_PERIOD                   0x001D
-#define NR_TAH                      0x001E
-#define NR_TAL                      0x001F
-#define NR_TBH                      0x0020
-#define NR_TBL                      0x0021
-#define NR_PRE_PULSE                0x0022
-#define NR_POST_PULSE               0x0024
-#define NR_RISEFALL                 0x0026
-#define NR_RF_PULSE                 0x0027
-#define CURRENT                     0x0028
-#define IPOS_TEMPCOMP               0x0029
-#define ADC_CONFIG                  0x002A
-#define ADC_ACT                     0x002B
-#define ADC_RES                     0x002C
-#define STATUS                      0x002D
+#define HLAF_WINDOWS_CONTROL	    0x3480
+#define HLAF_WINDOWS_STATUS	    0x3481 /* status register */
+#define SLAVE_I2C_BUS_CONFIG1	    0x3482
+#define SLAVE_I2C_BUS_CONFIG2	    0x3483
+#define HLAFD_SLV_ADR		    0x3484
+#define HLAFD_SUB_ADR		    0x3485
+#define HLAFD_RW_DATA		    0x3486
+#define BYTE_ACCESS_ENABLE	    0x3487
+#define MC_ID			    0x3490 /* Manufacturer and Chip ID */
+#define V_ID			    0x3491 /* Version ID */
+#define SYSCTRL			    0x3492 /* System Control */
+#define ISET_H			    0x3493 /* VCM Output Current MSBs */
+#define ISET_L			    0x3494 /* VCM Output Current LSBs */
+#define STAT			    0x3495 /* Diagnostic /Protection Status */
+#define RING_CFG		    0x3496 /* Ring Comp Configuration */
+#define VCMTM_H			    0x3497 /* VCM Resonance Period MSBs */
+#define VCMTM_L			    0x3498 /* VCM Resonance Period LSBs */
+#define DIGCFG1			    0x3499 /* DC-DC Config1 */
+#define DIGCFG2			    0x349A /* DC-DC Config2 */
+#define VTMIN_H			    0x349B /* VCM Self-Tuning Min Res MSBs */
+#define VTMIN_L			    0x349C /* VCM Self-Tuning Min Res LSBs */
+#define RES			    0x349D /* RESERVED */
+#define VTCFG			    0x349E /* VCM Self-Tuning Configuration */
+#define VTCUR			    0x349F /* VCM Self-Tuning Current */
+#define VTRES			    0x34A0 /* VCM Self-Tuning Resonance */
+#define VTTIME			    0x34A1 /* VCM Self-Tuning Timings */
+#define FRAM0			    0x34A2 /* Filter Engine Data0 */
+#define FRAM1			    0x34A3 /* Filter Engine Data1 */
+#define FRAM2			    0x34A4 /* Filter Engine Data2 */
+#define FRAM3			    0x34A5 /* Filter Engine Data3 */
+#define FRAM4			    0x34A6 /* Filter Engine Data4 */
+#define FRAM5			    0x34A7 /* Filter Engine Data5 */
+#define FRAM6			    0x34A8 /* Filter Engine Data6 */
+#define FRAM7			    0x34A9 /* Filter Engine Data7 */
+
+/* high-level AutoFocus interface, 16bit registers */
+#define FOCUS_CHANGE		    0x0D80 /* RW */
+#define FOCUS_CHANGE_CONTROL	    0x0D82 /* RW */
+#define FOCUS_CHANGE_NUMBER_PHASE1  0x0D84 /* RW */
+#define FOCUS_CHANGE_NUMBER_PHASE2  0x0D86 /* RW */
+#define STROBE_COUNT_PHASE1	    0x0D88 /* RW */
+#define STROBE_COUNT_PHASE2	    0x0D89 /* RW */
+#define POSITION		    0x0D8A /* Read Only */
 
 union focus_change_control {
 	struct {
@@ -188,6 +192,9 @@ union image_orientation {
 };
 
 /* Operating Voltage */
+#define VANA_VOLTAGE                       0x0130
+#define VDIG_VOLTAGE                       0x0132
+#define VIO_VOLTAGE                        0x0134
 #define EXTCLK_FRQ_MHZ                     0x0136
 
 /* Integration Time */
@@ -251,8 +258,7 @@ union image_orientation {
 
 #define NVM_VERSION        0x21
 
-#define NVM_MEMORY_ADDRESS 0x0002
-#define NVM_AF_FAR_END     0x0005
+#define NVM_MEMORY_ADDRESS 0x0003
 
 union data_transfer_if_1_status {
 	struct {
@@ -402,7 +408,19 @@ union global_reset_mode_config1 {
 
 #endif
 
+/* White Gain */
+#define DM_LOW_GAIN_WHITE                  0x3280
+#define DM_MID_GAIN_WHITE                  0x3281
+#define DM_HIGH_GAIN_WHITE                 0x3282
+
+/* Black Gain */
+#define DM_LOW_GAIN_BLACK                  0x3283
+#define DM_MID_GAIN_BLACK                  0x3284
+#define DM_HIGH_GAIN_BLACK                 0x3285
 #define OUTPUT_IMAGE_WIDTH                 0x3400
 #define OUTPUT_IMAGE_HEIGHT                0x3402
+
+/* TEMPERATURE SENSOR */
+#define TEMP_SENSOR_OUTPUT                 0x013A
 
 #endif /* _GALILEO2_REG_H_ */

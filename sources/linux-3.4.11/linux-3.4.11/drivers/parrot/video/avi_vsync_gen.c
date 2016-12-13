@@ -319,8 +319,13 @@ static int __devinit avivsync_probe(struct platform_device *pdev)
 	int				 i;
 	int				 ret = 0;
 
-	pdata = dev_get_platdata(&pdev->dev);
 	if (!pdev) {
+		ret = -ENODEV;
+		goto no_pdata;
+	}
+
+	pdata = dev_get_platdata(&pdev->dev);
+	if (!pdata) {
 		ret = -ENODEV;
 		goto no_pdata;
 	}

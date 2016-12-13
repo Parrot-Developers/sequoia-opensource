@@ -1245,6 +1245,7 @@ struct timespec get_monotonic_coarse(void)
 				now.tv_nsec + mono.tv_nsec);
 	return now;
 }
+EXPORT_SYMBOL(get_monotonic_coarse);
 
 /*
  * The 64-bit jiffies value is not atomic - you MUST NOT read it

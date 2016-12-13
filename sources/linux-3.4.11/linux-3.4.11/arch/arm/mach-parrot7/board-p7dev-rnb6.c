@@ -329,6 +329,7 @@ static int rnb6_cam1_set_power(int on)
 #define MT9V117_INPUT_FREQ_HZ	27000000
 static struct mt9v117_platform_data rnb6_cam1_mt9v117_platform_data = {
 	.set_power = &rnb6_cam1_set_power,
+	.enable_bt656    = 1,
 	.ext_clk_freq_hz = MT9V117_INPUT_FREQ_HZ,
 };
 

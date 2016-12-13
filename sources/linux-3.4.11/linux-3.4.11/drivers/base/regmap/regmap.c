@@ -396,6 +396,19 @@ void regmap_exit(struct regmap *map)
 }
 EXPORT_SYMBOL_GPL(regmap_exit);
 
+/**
+ * regmap_get_device(): Obtain the device from a regmap
+ *
+ * @map: Register map to operate on.
+ *
+ * Returns the underlying device that the regmap has been created for.
+ */
+struct device *regmap_get_device(struct regmap *map)
+{
+	return map->dev;
+}
+EXPORT_SYMBOL_GPL(regmap_get_device);
+
 static int _regmap_raw_write(struct regmap *map, unsigned int reg,
 			     const void *val, size_t val_len)
 {

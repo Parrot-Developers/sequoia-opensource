@@ -912,8 +912,6 @@ static ssize_t avifb_store_alpha(struct device *device,
 		alpha = simple_strtoul(buf, &last, 0);
 		if (alpha > 0xff || (*last != '\0' && *last != '\n'))
 			return -EINVAL;
-
-		alpha = alpha;
 	}
 
 	avi_segment_set_alpha(par->segment, alpha);
@@ -2300,10 +2298,7 @@ static int __devinit avifb_parse_options(struct avifb_data *data)
 
 	/* For all the parsing I assume that command line errors are not fatal:
 	 * bogus entries are simply ignored (with a warning message) */
-	while ((opt = strsep(&opts, ","))) {
-		if (!opt)
-			continue;
-
+	while ((opt = strsep(&opts, ",")) != NULL) {
 		if (!strcmp(opt, "yuv"))
 			data->output_cspace = AVI_BT709_CSPACE;
 		else if (!strcmp(opt, "rgb"))
@@ -2315,7 +2310,7 @@ static int __devinit avifb_parse_options(struct avifb_data *data)
 		else if (!strncmp(opt, "pad=", strlen("pad="))) {
 			pad = *(opt + strlen("pad=")) - '0';
 
-			if (pad >= 0 || pad <= 2) {
+			if (pad >= 0 && pad <= 2) {
 				data->lcd_interface.pad_select = pad;
 			} else
 				dev_warn(data->dev, "bogus pad value\n");
@@ -2363,7 +2358,7 @@ static int __devinit avifb_probe(struct platform_device *pdev)
 {
 	struct avifb_data		*data;
 	struct avifb_platform_data	*pdata;
-	unsigned			 i;
+	signed				 i;
 	int				 ret;
 
 	pdata = dev_get_platdata(&pdev->dev);
@@ -2418,7 +2413,7 @@ static int __devinit avifb_probe(struct platform_device *pdev)
 
 	for (i = 0; i < ARRAY_SIZE(avifb_lcd_sysfs_attrs); i++) {
                 ret = device_create_file(&pdev->dev, &avifb_lcd_sysfs_attrs[i]);
-                if (ret) {
+                if (ret && i) {
                         for (--i; i >= 0; i--)
                                 device_remove_file(&pdev->dev,
 						   &avifb_lcd_sysfs_attrs[i]);
@@ -2460,8 +2455,9 @@ sysfs_err:
 	pinctrl_put(data->pctl);
 nopin:
 	/* It's safe to call this function even if the pixclock's already
-	 * disabled. */
-	ret = avi_lcd_pixclock_disable(data->lcdc);
+	 * disabled.
+	 * Note : we keep the original return value from 'PTR_ERR(data->pctl)' */
+	avi_lcd_pixclock_disable(data->lcdc);
 	avi_segment_teardown(data->display_segment);
 bad_lcd_segment:
 bad_option:

@@ -190,7 +190,7 @@ static enum p7_mpmc_port p7brd_mpmpc_find_port(const char *name)
 
 	int i;
 
-	for (i = 0; i <= ARRAY_SIZE(ports); i++) {
+	for (i = 0; i < ARRAY_SIZE(ports); i++) {
 		if (!strcmp(name, ports[i].name))
 			return ports[i].port;
 	}

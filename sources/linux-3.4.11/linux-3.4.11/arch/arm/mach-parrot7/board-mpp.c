@@ -82,6 +82,70 @@ static struct i2c_board_info smsc82512_info = {
 };
 #endif
 
+/**********************
+ * Magnetometer sensor
+ **********************/
+
+#if defined(CONFIG_AK8975) || defined(CONFIG_AK8975_MODULE)
+#include <linux/platform_data/ak8975.h>
+
+#define MPP_MAGN_NAME     "ak8963"
+#define MPP_MAGN_I2C_BUS  (2)
+#define MPP_MAGN_I2C_ADDR (0x0c)
+#define MPP_MAGN_IRQ_GPIO (91)
+#define MPP_MAGN_ORIENT   "0, 0, -1; 0, 1, 0; 1, 0, 0;"
+
+static struct ak8975_platform_data mpp_magn_pdata = {
+	.orientation = MPP_MAGN_ORIENT,
+};
+
+static struct i2c_board_info mpp_magn_info = {
+	I2C_BOARD_INFO(MPP_MAGN_NAME, MPP_MAGN_I2C_ADDR),
+	.platform_data = &mpp_magn_pdata,
+	.irq = P7_GPIO_NR(MPP_MAGN_IRQ_GPIO),
+};
+
+static void __init mpp_init_magn(void)
+{
+	parrot_init_i2c_slave(MPP_MAGN_I2C_BUS, &mpp_magn_info, "Magnetometer",
+			      P7_I2C_IRQ);
+}
+#else
+#define mpp_init_magn()
+#endif
+
+/******************************
+ * Inertial measurement sensor
+ ******************************/
+
+#if defined(CONFIG_INV_MPU6050_I2C) || defined(CONFIG_INV_MPU6050_I2C_MODULE)
+#include <linux/platform_data/invensense_mpu6050.h>
+
+#define MPP_IMU_NAME     "icm20608"
+#define MPP_IMU_I2C_BUS  (1)
+#define MPP_IMU_I2C_ADDR (0x68)
+#define MPP_IMU_IRQ_GPIO (92)
+#define MPP_IMU_ORIENT   { 0, 0, -1, -1, 0, 0, 0, 1, 0 }
+
+static struct inv_mpu6050_platform_data mpp_imu_pdata = {
+	.orientation = MPP_IMU_ORIENT
+};
+
+static struct i2c_board_info mpp_imu_info = {
+	I2C_BOARD_INFO(MPP_IMU_NAME, MPP_IMU_I2C_ADDR),
+	.platform_data = &mpp_imu_pdata,
+	.irq = P7_GPIO_NR(MPP_IMU_IRQ_GPIO),
+};
+
+static void __init mpp_init_imu(void)
+{
+	parrot_init_i2c_slave(MPP_IMU_I2C_BUS, &mpp_imu_info, "IMU",
+			      P7_I2C_IRQ);
+}
+#else
+#define mpp_init_imu()
+#endif
+
 static void __init mpp_init_mach(void)
 {
 	/* Initialize ramoops */
@@ -93,11 +157,11 @@ static void __init mpp_init_mach(void)
 	/* Init GPIOs */
 	p7_init_gpio(NULL, 0);
 
-	/* Get PCB/HW revision and update HSIS */
-	//ev_board_probe();
-
 	/* Init debug UART */
 	p7brd_init_uart(3, 0);
+
+	/* Init BT UART */
+	p7brd_init_uart(1, 1);
 
 	/* Init NAND */
 	p7brd_init_nand(0);
@@ -105,11 +169,8 @@ static void __init mpp_init_mach(void)
 	/* Init I2C master
 	 * I2CM-0:
 	 *     P7MU
-	 *     HDMI Input (with EDID EEPROM) not used anymore
 	 * I2CM-2:
 	 *     AKM8963 (magneto)
-	 *     MS5607 (Pressure/Temperature)
-	 *     HDMI Input (with EDID EEPROM) not used anymore
 	 * I2CM-1:
 	 *     MPU6050 (gyro/accel)
 	 * XXX connect hub ?
@@ -121,10 +182,6 @@ static void __init mpp_init_mach(void)
 	 *     requires a clock lower or equal to
 	 *     to 100kHz! */
 	p7brd_init_i2cm(2, 100);
-
-	/* Init BT */
-	p7brd_init_uart(1, 1);
-	p7brd_export_gpio(119, GPIOF_OUT_INIT_LOW, "bt-rst");
 
 	/* Initialize P7MU */
 	p7_gpio_interrupt_register(73);
@@ -160,31 +217,25 @@ static void __init mpp_init_mach(void)
 		/* HW1 is ok */
 		drone_common_init_usb(86 /* VBUS_TABLET_EN */, 87 /* USB_VBUS_TABLET */,
 				      88 /* #OC_TABLET */, 1);
+		/* config pull up on GPIO 88 */
+		p7_config_pin(88, P7CTL_PUD_CFG(UP));
+
 		/* Init EHCI 1 */
-		p7brd_init_usb(1, -1, CI_UDC_DR_HOST);
+		p7brd_init_usb(1, -1, CI_UDC_DR_HOST|CI_UDC_DR_DISABLE_HOST_WORKAROUND);
 	}
 
-	/* Init USB Hub */
-	gpio_request_one(179, GPIOF_OUT_INIT_LOW,
-			 "RESET_USB_HUB");
-#if 0
-	parrot_init_i2c_slave(HUB_I2C_BUS, &smsc82512_info, "smsc 82512",
-			      P7_I2C_NOIRQ);
-#endif
+	/* Init IMU, i.e. accelero + gyro */
+	mpp_init_imu();
 
-	/* Init sensors */
-#if 0
-	drone_common_init_ak8963(AK8963_I2C_BUS, ev_hsis.magneto_int_p7);
-	drone_common_init_inv_mpu6050(MPU6050_I2C_BUS, ev_hsis.gyro_int_p7,
-				      FSYNC_GYRO_FILTER, ev_hsis.clkin_gyro);
-	drone_common_init_ms5607(MS5607_I2C_BUS);
-#endif
+	/* Init magneto */
+	mpp_init_magn();
 
 	/* Init FAN */
 	drone_common_init_fan(85);
 
+	p7brd_export_gpio(P7_GPIO_NR(179), GPIOF_OUT_INIT_LOW, "RESET_USB_HUB");
 	p7brd_export_gpio(P7_GPIO_NR(124), GPIOF_OUT_INIT_LOW, "POWER_KEEP");
-	p7brd_export_gpio(9, GPIOF_OUT_INIT_LOW, "RESET_WIFI");
+	p7brd_export_gpio(P7_GPIO_NR(9), GPIOF_OUT_INIT_LOW, "RESET_WIFI");
 	p7brd_export_gpio(P7_GPIO_NR(132), GPIOF_OUT_INIT_LOW, "ipod-rst");
 	p7brd_export_i2c_hw_infos(2, 0x10, "2C", "ipod");
 

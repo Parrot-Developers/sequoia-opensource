@@ -465,12 +465,16 @@ static int p7mu_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	switch(num) {
 		case 3:
 			level = 0;
+			break;
 		case 4:
 			level = 1;
+			break;
 		case 5:
 			level = 2;
+			break;
 		case 16:
 			level = 3;
+			break;
 		case 17:
 			level = 4;
 			break;

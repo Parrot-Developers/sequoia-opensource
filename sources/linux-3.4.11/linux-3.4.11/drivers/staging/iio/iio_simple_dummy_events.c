@@ -135,6 +135,15 @@ int iio_simple_dummy_write_event_value(struct iio_dev *indio_dev,
 	return 0;
 }
 
+static irqreturn_t iio_simple_dummy_get_timestamp(int irq, void *private)
+{
+	struct iio_dev *indio_dev = private;
+	struct iio_dummy_state *st = iio_priv(indio_dev);
+
+	st->event_timestamp = iio_get_time_ns(indio_dev);
+	return IRQ_WAKE_THREAD;
+}
+
 /**
  * iio_simple_dummy_event_handler() - identify and pass on event
  * @irq: irq of event line
@@ -153,7 +162,7 @@ static irqreturn_t iio_simple_dummy_event_handler(int irq, void *private)
 		       IIO_EVENT_CODE(IIO_VOLTAGE, 0, 0,
 				      IIO_EV_DIR_RISING,
 				      IIO_EV_TYPE_THRESH, 0, 0, 0),
-		       iio_get_time_ns());
+		       iio_get_time_ns(indio_dev));
 	return IRQ_HANDLED;
 }
 

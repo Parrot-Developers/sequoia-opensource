@@ -178,12 +178,15 @@ void __init p7brd_init_i2cm_muxed(int bus,
 			case 0:
 				pins = p7brd_i2cm0_pins;
 				pin_cnt = ARRAY_SIZE(p7brd_i2cm0_pins);
+				break;
 			case 1:
 				pins = p7brd_i2cm1_pins;
 				pin_cnt = ARRAY_SIZE(p7brd_i2cm1_pins);
+				break;
 			case 2:
 				pins = p7brd_i2cm2_pins;
 				pin_cnt = ARRAY_SIZE(p7brd_i2cm2_pins);
+				break;
 		}
 	}
 	return p7_init_i2cm_muxed(bus,
@@ -429,6 +432,19 @@ static int p7_init_usb(struct platform_device *pdev, int (*ulpi_write)(struct pl
 		else
 			dev_err(&pdev->dev, "Unable to disable auto calibration\n");
 	}
+
+	/*  There is a known bug where the
+		USB ULPI interface on USB controller freezes when voltage on
+		Vbus crosses the Vbus valid threshold
+		http://www.xilinx.com/support/answers/61313.html
+		Since we don't use the VbusValid interrupt we deactivate it in the PHY */
+	if(ulpi_write) {
+		ret = ulpi_write(pdev, 0x0d, 0x1d); // Rising edge
+		ret = ulpi_write(pdev, 0x10, 0x1d); // Falling edge
+		dev_dbg(&pdev->dev, "disabling VbusValid interrupt (%i)\n", ret);
+	}
+	else
+		dev_err(&pdev->dev, "Unable to disable VbusValid interrupts\n");
 
 	/* deliver VBUS to connector if role is host (or dual, needed for ios in the car)*/
 	if (gpio_is_valid(pdata->gpio_vbus)) {

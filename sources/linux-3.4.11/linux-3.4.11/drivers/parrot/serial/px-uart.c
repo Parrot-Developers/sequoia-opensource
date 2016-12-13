@@ -725,6 +725,7 @@ static int __devinit parrot5_serial_probe(struct platform_device *dev)
 	int ret;
 	struct resource *res;
 	struct uart_parrot5_port *up;
+	int irq;
 
 	if ((dev->id < 0) || (dev->id >= UART_NR)) {
 		printk(KERN_ERR"invalid dev id %x\n", dev->id);
@@ -748,11 +749,12 @@ static int __devinit parrot5_serial_probe(struct platform_device *dev)
 		goto nomap;
 	}
 
-	up->port.irq = platform_get_irq(dev, 0);
-	if (up->port.irq < 0) {
+	irq = platform_get_irq(dev, 0);
+	if (irq < 0) {
 		ret = -ENOENT;
 		goto noirq;
 	}
+	up->port.irq = irq;
 
 	up->uart_clk = clk_get(&dev->dev, NULL);
 	if (IS_ERR(up->uart_clk)) {

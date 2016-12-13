@@ -19,7 +19,6 @@ struct galileo1_platform_data {
 	unsigned int  lanes;     /* Numer of CSI-2 lanes */
 };
 
-#define GALILEO1_SENSOR_I2C_ADDR  0x10
 #define GALILEO1_PMIC_I2C_ADDR    0x0e
 
 #define GALILEO1_POWER_ON     1

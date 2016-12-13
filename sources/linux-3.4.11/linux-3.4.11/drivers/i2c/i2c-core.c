@@ -1324,6 +1324,37 @@ static void i2c_dump_msg(const struct i2c_adapter *adap,
  */
 
 /**
+ * __i2c_transfer - unlocked flavor of i2c_transfer
+ * @adap: Handle to I2C bus
+ * @msgs: One or more messages to execute before STOP is issued to
+ *	terminate the operation; each message begins with a START.
+ * @num: Number of messages to be executed.
+ *
+ * Returns negative errno, else the number of messages executed.
+ *
+ * Adapter lock must be held when calling this function. No debug logging
+ * takes place. adap->algo->master_xfer existence isn't checked.
+ */
+int __i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
+{
+	unsigned long orig_jiffies;
+	int ret, try;
+
+	/* Retry automatically on arbitration loss */
+	orig_jiffies = jiffies;
+	for (ret = 0, try = 0; try <= adap->retries; try++) {
+		ret = adap->algo->master_xfer(adap, msgs, num);
+		if (ret != -EAGAIN)
+			break;
+		if (time_after(jiffies, orig_jiffies + adap->timeout))
+			break;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL(__i2c_transfer);
+
+/**
  * i2c_transfer - execute a single or combined I2C message
  * @adap: Handle to I2C bus
  * @msgs: One or more messages to execute before STOP is issued to
@@ -1337,8 +1368,7 @@ static void i2c_dump_msg(const struct i2c_adapter *adap,
  */
 int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 {
-	unsigned long orig_jiffies;
-	int ret, try;
+	int ret;
 
 	/* REVISIT the fault reporting model here is weak:
 	 *
@@ -1369,15 +1399,7 @@ int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 			i2c_lock_adapter(adap);
 		}
 
-		/* Retry automatically on arbitration loss */
-		orig_jiffies = jiffies;
-		for (ret = 0, try = 0; try <= adap->retries; try++) {
-			ret = adap->algo->master_xfer(adap, msgs, num);
-			if (ret != -EAGAIN)
-				break;
-			if (time_after(jiffies, orig_jiffies + adap->timeout))
-				break;
-		}
+		ret = __i2c_transfer(adap, msgs, num);
 		i2c_unlock_adapter(adap);
 
 	out:
@@ -2157,6 +2179,63 @@ s32 i2c_smbus_xfer(struct i2c_adapter *adapter, u16 addr, unsigned short flags,
 	return res;
 }
 EXPORT_SYMBOL(i2c_smbus_xfer);
+
+/**
+ * i2c_smbus_read_i2c_block_data_or_emulated - read block or emulate
+ * @client: Handle to slave device
+ * @command: Byte interpreted by slave
+ * @length: Size of data block; SMBus allows at most I2C_SMBUS_BLOCK_MAX bytes
+ * @values: Byte array into which data will be read; big enough to hold
+ *	the data returned by the slave.  SMBus allows at most
+ *	I2C_SMBUS_BLOCK_MAX bytes.
+ *
+ * This executes the SMBus "block read" protocol if supported by the adapter.
+ * If block read is not supported, it emulates it using either word or byte
+ * read protocols depending on availability.
+ *
+ * The addresses of the I2C slave device that are accessed with this function
+ * must be mapped to a linear region, so that a block read will have the same
+ * effect as a byte read. Before using this function you must double-check
+ * if the I2C slave does support exchanging a block transfer with a byte
+ * transfer.
+ */
+s32 i2c_smbus_read_i2c_block_data_or_emulated(const struct i2c_client *client,
+					      u8 command, u8 length, u8 *values)
+{
+	u8 i = 0;
+	int status;
+
+	if (length > I2C_SMBUS_BLOCK_MAX)
+		length = I2C_SMBUS_BLOCK_MAX;
+
+	if (i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_READ_I2C_BLOCK))
+		return i2c_smbus_read_i2c_block_data(client, command, length, values);
+
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_READ_BYTE_DATA))
+		return -EOPNOTSUPP;
+
+	if (i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_READ_WORD_DATA)) {
+		while ((i + 2) <= length) {
+			status = i2c_smbus_read_word_data(client, command + i);
+			if (status < 0)
+				return status;
+			values[i] = status & 0xff;
+			values[i + 1] = status >> 8;
+			i += 2;
+		}
+	}
+
+	while (i < length) {
+		status = i2c_smbus_read_byte_data(client, command + i);
+		if (status < 0)
+			return status;
+		values[i] = status;
+		i++;
+	}
+
+	return i;
+}
+EXPORT_SYMBOL(i2c_smbus_read_i2c_block_data_or_emulated);
 
 MODULE_AUTHOR("Simon G. Vogl <simon@tk.uni-linz.ac.at>");
 MODULE_DESCRIPTION("I2C-Bus main module");

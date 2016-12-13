@@ -486,7 +486,9 @@ static int ms5607_read_raw_pressure(struct ms5607_data *data)
 	} buffer;
 	int 	ret;
 
-	data->timestamps[TS_request_pressure] = iio_get_time_ns();
+	struct iio_dev *indio_dev = i2c_get_clientdata(data->client);
+
+	data->timestamps[TS_request_pressure] = iio_get_time_ns(indio_dev);
 
 	ret = i2c_smbus_write_byte(data->client,
 		  MS5607_CMD_ADC_D1 | ms5607_cmd_adc_conv[data->pressure_osr]);
@@ -500,7 +502,7 @@ static int ms5607_read_raw_pressure(struct ms5607_data *data)
 	usleep_range(ms5607_conversion_time[data->pressure_osr][0],
 		     ms5607_conversion_time[data->pressure_osr][1]);
 
-	data->timestamps[TS_ready_pressure] = iio_get_time_ns();
+	data->timestamps[TS_ready_pressure] = iio_get_time_ns(indio_dev);
 
 	ret = i2c_smbus_write_byte(data->client, MS5607_CMD_ADC_READ);
 	if (ret < 0) {
@@ -520,7 +522,7 @@ static int ms5607_read_raw_pressure(struct ms5607_data *data)
 
 	_RAW_PRESSURE = be32_to_cpu(buffer.ulong);
 
-	data->timestamps[TS_read_pressure] = iio_get_time_ns();
+	data->timestamps[TS_read_pressure] = iio_get_time_ns(indio_dev);
 
 	dev_dbg(&data->client->dev, "%s: raw_pressure %u\n", __func__, _RAW_PRESSURE);
 
@@ -536,7 +538,8 @@ static int ms5607_read_raw_temperature(struct ms5607_data *data)
 	} buffer;
 	int 	ret;
 
-	data->timestamps[TS_request_temperature] = iio_get_time_ns();
+	struct iio_dev *indio_dev = i2c_get_clientdata(data->client);
+	data->timestamps[TS_request_temperature] = iio_get_time_ns(indio_dev);
 
 	ret = i2c_smbus_write_byte(data->client,
 				   MS5607_CMD_ADC_D2 |
@@ -551,7 +554,7 @@ static int ms5607_read_raw_temperature(struct ms5607_data *data)
 	usleep_range(ms5607_conversion_time[data->temperature_osr][0],
 		     ms5607_conversion_time[data->temperature_osr][1]);
 
-	data->timestamps[TS_ready_temperature] = iio_get_time_ns();
+	data->timestamps[TS_ready_temperature] = iio_get_time_ns(indio_dev);
 
 	ret = i2c_smbus_write_byte(data->client, MS5607_CMD_ADC_READ);
 	if (ret < 0) {
@@ -571,7 +574,7 @@ static int ms5607_read_raw_temperature(struct ms5607_data *data)
 
 	_RAW_TEMPERATURE = be32_to_cpu(buffer.ulong);
 
-	data->timestamps[TS_read_temperature] = iio_get_time_ns();
+	data->timestamps[TS_read_temperature] = iio_get_time_ns(indio_dev);
 
 	dev_dbg(&data->client->dev,
 		"%s: raw_temperature %u\n", __func__,
@@ -585,6 +588,7 @@ static int ms5607_read_raw_temperature(struct ms5607_data *data)
 static int ms5607_read_processed_temperature(struct ms5607_data *data)
 {
 	int		ret;
+	struct iio_dev *indio_dev = i2c_get_clientdata(data->client);
 
 	ret = ms5607_read_raw_temperature(data);
 	if (ret < 0) {
@@ -605,7 +609,7 @@ static int ms5607_read_processed_temperature(struct ms5607_data *data)
 		return -EINVAL;
 	}
 
-	data->timestamps[TS_compute_temperature] = iio_get_time_ns();
+	data->timestamps[TS_compute_temperature] = iio_get_time_ns(indio_dev);
 
 	return IIO_VAL_INT;
 }
@@ -613,6 +617,7 @@ static int ms5607_read_processed_temperature(struct ms5607_data *data)
 static int ms5607_read_processed_pressure(struct ms5607_data *data)
 {
 	int ret;
+	struct iio_dev *indio_dev = i2c_get_clientdata(data->client);
 
 	ret = ms5607_read_raw_pressure(data);
 	if (ret < 0) {
@@ -634,7 +639,7 @@ static int ms5607_read_processed_pressure(struct ms5607_data *data)
 		return -EINVAL;
 	}
 
-	data->timestamps[TS_compute_pressure] = iio_get_time_ns();
+	data->timestamps[TS_compute_pressure] = iio_get_time_ns(indio_dev);
 
 	return IIO_VAL_INT;
 }
@@ -651,20 +656,20 @@ static int ms5607_read_raw(struct iio_dev *indio_dev,
 			switch(chan->address) {
 				case ATTR_PRESSURE:
 					mutex_lock(&data->lock);
-					data->timestamps[TS_trigger] = iio_get_time_ns();
+					data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 					ret = ms5607_read_processed_pressure(data);
 					*val  = _PRESSURE;
 					*val2 = 0;
-					data->timestamps[TS_push_pressure] = iio_get_time_ns();
+					data->timestamps[TS_push_pressure] = iio_get_time_ns(indio_dev);
 					mutex_unlock(&data->lock);
 					break;
 				case ATTR_TEMPERATURE:
 					mutex_lock(&data->lock);
-					data->timestamps[TS_trigger] = iio_get_time_ns();
+					data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 					ret = ms5607_read_processed_temperature(data);
 					*val  = _TEMPERATURE;
 					*val2 = 0;
-					data->timestamps[TS_push_temperature] = iio_get_time_ns();
+					data->timestamps[TS_push_temperature] = iio_get_time_ns(indio_dev);
 					mutex_unlock(&data->lock);
 					break;
 			}
@@ -722,12 +727,12 @@ static irqreturn_t ms5607_trigger_handler(int irq, void *p)
 	struct ms5607_data *data = iio_priv(indio_dev);
 	int ret;
 
-	data->timestamps[TS_trigger] = iio_get_time_ns();
+	data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 	ret = ms5607_read(data);
 	if (ret < 0)
 		goto done;
 
-	data->timestamps[TS_push_pressure] = data->timestamps[TS_push_temperature] = iio_get_time_ns();
+	data->timestamps[TS_push_pressure] = data->timestamps[TS_push_temperature] = iio_get_time_ns(indio_dev);
 	iio_push_to_buffers_with_timestamp(indio_dev, &data->processed_buffer,
 					   data->timestamps[TS_push_pressure]);
 
@@ -839,7 +844,7 @@ static int ms5607_fetch_temp(struct iio_dev *indio_dev)
 	int ret = 0;
 
 	if (!data->pressure_fetched && !data->temperature_fetched)
-		data->timestamps[TS_trigger] = iio_get_time_ns();
+		data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 
 	mutex_lock(&data->lock);
 
@@ -851,7 +856,7 @@ static int ms5607_fetch_temp(struct iio_dev *indio_dev)
 
 	mutex_unlock(&data->lock);
 
-	data->timestamps[TS_push_temperature] = iio_get_time_ns();;
+	data->timestamps[TS_push_temperature] = iio_get_time_ns(indio_dev);;
 	data->temperature_fetched = 1;
 
 	if (data->pressure_fetched && data->temperature_fetched) {
@@ -871,7 +876,7 @@ static int ms5607_fetch_pressure(struct iio_dev *indio_dev)
 	int ret = 0;
 
 	if (!data->pressure_fetched && !data->temperature_fetched)
-		data->timestamps[TS_trigger] = iio_get_time_ns();
+		data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 
 	mutex_lock(&data->lock);
 
@@ -883,7 +888,7 @@ static int ms5607_fetch_pressure(struct iio_dev *indio_dev)
 
 	mutex_unlock(&data->lock);
 
-	data->timestamps[TS_push_pressure] = iio_get_time_ns();
+	data->timestamps[TS_push_pressure] = iio_get_time_ns(indio_dev);
 	data->pressure_fetched = 1;
 
 	if (data->pressure_fetched && data->temperature_fetched) {

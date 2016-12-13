@@ -1,0 +1,15 @@
+diff -ru ltrace-0.7.91-orig/sysdeps/linux-gnu/arm/plt.c ltrace-0.7.91/sysdeps/linux-gnu/arm/plt.c
+--- ltrace-0.7.91-orig/sysdeps/linux-gnu/arm/plt.c
++++ ltrace-0.7.91/sysdeps/linux-gnu/arm/plt.c
+@@ -59,8 +59,8 @@
+ 	 * ABI is softfp or hardfp.  */
+ 	unsigned hardfp = 0;
+ 
+-	Elf_Scn *scn;
+-	Elf_Data *data;
++	Elf_Scn *scn = NULL;
++	Elf_Data *data = NULL;
+ 	GElf_Shdr shdr;
+ 	if (elf_get_section_type(lte, SHT_ARM_ATTRIBUTES, &scn, &shdr) < 0
+ 	    || (scn != NULL && (data = elf_loaddata(scn, &shdr)) == NULL)) {
+

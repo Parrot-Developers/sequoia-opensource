@@ -217,7 +217,7 @@ static irqreturn_t tcs3414_trigger_handler(int irq, void *p)
 	}
 
 	iio_push_to_buffers_with_timestamp(indio_dev, data->buffer,
-		iio_get_time_ns());
+		iio_get_time_ns(indio_dev));
 
 done:
 	iio_trigger_notify_done(indio_dev->trig);
@@ -392,7 +392,6 @@ static struct i2c_driver tcs3414_driver = {
 	.driver = {
 		.name	= TCS3414_DRV_NAME,
 		.pm	= &tcs3414_pm_ops,
-		.owner	= THIS_MODULE,
 	},
 	.probe		= tcs3414_probe,
 	.remove		= tcs3414_remove,

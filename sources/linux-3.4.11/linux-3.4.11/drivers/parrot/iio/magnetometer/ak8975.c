@@ -43,8 +43,8 @@
 #ifdef CONFIG_PARROT_AK8963_NOTRIGGER
 #include <linux/iio/kfifo_buf.h>
 #endif
-
-#include <iio/platform_data/ak8975.h>
+#include <iio/platform_data/mykonos3.h>
+#include <linux/platform_data/ak8975.h>
 #include "ak8975_regs.h"
 
 /* module parameters */
@@ -60,6 +60,12 @@ enum ak8975_timestamps_list {
   TS_data_ready,
   TS_push,
   TS_NR
+};
+
+/* Compatible Asahi Kasei Compass parts */
+enum asahi_compass_chipset {
+	AK8975,
+	AK8963,
 };
 
 /*
@@ -118,9 +124,10 @@ static int ak8975_write_data(struct i2c_client *client,
 static irqreturn_t ak8975_irq_handler(int irq, void *data)
 {
 	struct ak8975_data *ak8975 = data;
+	struct iio_dev *indio_dev = i2c_get_clientdata(ak8975->client);
 
 	set_bit(0, &ak8975->flags);
-	ak8975->timestamps[TS_data_ready] = iio_get_time_ns();
+	ak8975->timestamps[TS_data_ready] = iio_get_time_ns(indio_dev);
 
 	return IRQ_HANDLED;
 }
@@ -530,7 +537,7 @@ static int ak8975_request_data(struct iio_dev *indio_dev)
 	struct ak8975_data *data = iio_priv(indio_dev);
 	struct i2c_client *client = data->client;
 
-	data->timestamps[TS_request] = iio_get_time_ns();
+	data->timestamps[TS_request] = iio_get_time_ns(indio_dev);
 	dev_dbg(&client->dev, "%s\n", __func__);
 
 	/* Set up the device for taking a sample. */
@@ -578,7 +585,7 @@ static int ak8975_fetch_data(struct iio_dev *indio_dev)
 	if (ret < 0)
 		goto exit;
 
-	data->timestamps[TS_push] = iio_get_time_ns();
+	data->timestamps[TS_push] = iio_get_time_ns(indio_dev);
 	iio_push_to_buffers_with_timestamp(indio_dev, buffer,
 					   data->timestamps[TS_push]);
 
@@ -592,8 +599,9 @@ static int ak8975_request_single(struct ak8975_data *data)
 {
 	struct i2c_client *client = data->client;
 	int ret;
+	struct iio_dev *indio_dev = i2c_get_clientdata(client);
 
-	data->timestamps[TS_request] = iio_get_time_ns();
+	data->timestamps[TS_request] = iio_get_time_ns(indio_dev);
 	dev_dbg(&client->dev, "%s\n", __func__);
 
 	/* Set up the device for taking a sample. */
@@ -626,7 +634,7 @@ static int ak8975_request_single(struct ak8975_data *data)
 		ret = wait_conversion_complete_polled(data);
 	if (ret < 0)
 		return ret;
-	data->timestamps[TS_data_ready] = iio_get_time_ns();
+	data->timestamps[TS_data_ready] = iio_get_time_ns(indio_dev);
 
 	dev_dbg(&client->dev, "%s: ST1: %02X\n", __func__, ret);
 
@@ -659,7 +667,7 @@ static int ak8975_read_axis(struct iio_dev *indio_dev, int index, int *val)
 	struct i2c_client *client = data->client;
 	int ret;
 
-	data->timestamps[TS_trigger] = iio_get_time_ns();
+	data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 	mutex_lock(&data->lock);
 
 	if (data->mode == 0) {
@@ -684,7 +692,7 @@ static int ak8975_read_axis(struct iio_dev *indio_dev, int index, int *val)
 
 	/* Clamp to valid range. */
 	*val = clamp_t(s16, ret, data->clamp[0], data->clamp[1]);
-	data->timestamps[TS_push] = iio_get_time_ns();
+	data->timestamps[TS_push] = iio_get_time_ns(indio_dev);
 	return IIO_VAL_INT;
 
 exit:
@@ -739,13 +747,13 @@ static irqreturn_t ak8975_trigger_handler(int irq, void *p)
 	u8 buffer[16]; /* 3 16-bit channels + padding + ts */
 	int ret;
 
-	data->timestamps[TS_trigger] = iio_get_time_ns();
+	data->timestamps[TS_trigger] = iio_get_time_ns(indio_dev);
 
 	ret = ak8975_read(data, (u16 *) buffer);
 	if (ret < 0)
 		goto done;
 
-	data->timestamps[TS_push] = iio_get_time_ns();
+	data->timestamps[TS_push] = iio_get_time_ns(indio_dev);
 	iio_push_to_buffers_with_timestamp(indio_dev, buffer,
 					   data->timestamps[TS_push]);
 

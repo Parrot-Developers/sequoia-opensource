@@ -209,6 +209,32 @@ extern int of_property_read_u32_array(const struct device_node *np,
 extern int of_property_read_u64(const struct device_node *np,
 				const char *propname, u64 *out_value);
 
+extern int of_property_read_string_helper(struct device_node *np,
+					  const char *propname,
+					  const char **out_strs, size_t sz,
+					  int skip);
+
+/**
+ * of_property_read_string_array() - Read an array of strings from a multiple
+ * strings property.
+ * @np:		device node from which the property value is to be read.
+ * @propname:	name of the property to be searched.
+ * @out_strs:	output array of string pointers.
+ * @sz:		number of array elements to read.
+ *
+ * Search for a property in a device tree node and retrieve a list of
+ * terminated string values (pointer to data, not a copy) in that property.
+ *
+ * If @out_strs is NULL, the number of strings in the property is returned.
+ */
+static inline int of_property_read_string_array(struct device_node *np,
+						const char *propname,
+						const char **out_strs,
+						size_t sz)
+{
+	return of_property_read_string_helper(np, propname, out_strs, sz, 0);
+}
+
 extern int of_property_read_string(struct device_node *np,
 				   const char *propname,
 				   const char **out_string);
@@ -330,7 +356,30 @@ static inline int of_property_read_u64(const struct device_node *np,
 	return -ENOSYS;
 }
 
-static inline struct device_node *of_parse_phandle(struct device_node *np,
+static inline int of_property_read_string_helper(struct device_node *np,
+						 const char *propname,
+						 const char **out_strs, size_t sz,
+						 int skip)
+{
+	return -ENOSYS;
+}
+
+static inline int of_property_read_string_array(struct device_node *np,
+						const char *propname,
+						const char **out_strs,
+						size_t sz)
+{
+	return -ENOSYS;
+}
+
+static inline int of_property_match_string(struct device_node *np,
+					   const char *propname,
+					   const char *string)
+{
+	return -ENOSYS;
+}
+
+static inline struct device_node *of_parse_phandle(const struct device_node *np,
 						   const char *phandle_name,
 						   int index)
 {

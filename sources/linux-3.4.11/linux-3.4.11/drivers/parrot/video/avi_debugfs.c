@@ -352,7 +352,7 @@ static void avi_format_show(struct seq_file *s, unsigned format)
 	const char *name;
 
 
-	if (format > ARRAY_SIZE(names) || !names[format])
+	if (format >= ARRAY_SIZE(names) || !names[format])
 		name = "invalid";
 	else
 		name = names[format];

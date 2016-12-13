@@ -130,7 +130,7 @@ int aai_group_start(struct card_data_t *aai, int group_nb)
 {
 	int err = 0;
 
-	if (group_nb < 0 || group_nb > NB_GROUPS) {
+	if (group_nb < 0 || group_nb >= NB_GROUPS) {
 		dev_warn(aai->dev, "%s: invalid group number (%d)\n",
 			 __func__, group_nb);
 		err = -EINVAL;

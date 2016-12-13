@@ -686,6 +686,43 @@ int of_property_read_u64(const struct device_node *np, const char *propname,
 EXPORT_SYMBOL_GPL(of_property_read_u64);
 
 /**
+ * of_property_read_string_helper() - Utility helper for parsing string properties
+ * @np:		device node from which the property value is to be read.
+ * @propname:	name of the property to be searched.
+ * @out_strs:	output array of string pointers.
+ * @sz:		number of array elements to read.
+ * @skip:	Number of strings to skip over at beginning of list.
+ *
+ * Don't call this function directly. It is a utility helper for the
+ * of_property_read_string*() family of functions.
+ */
+int of_property_read_string_helper(struct device_node *np, const char *propname,
+				   const char **out_strs, size_t sz, int skip)
+{
+	struct property *prop = of_find_property(np, propname, NULL);
+	int l = 0, i = 0;
+	const char *p, *end;
+
+	if (!prop)
+		return -EINVAL;
+	if (!prop->value)
+		return -ENODATA;
+	p = prop->value;
+	end = p + prop->length;
+
+	for (i = 0; p < end && (!out_strs || i < skip + sz); i++, p += l) {
+		l = strnlen(p, end - p) + 1;
+		if (p + l > end)
+			return -EILSEQ;
+		if (out_strs && i >= skip)
+			*out_strs++ = p;
+	}
+	i -= skip;
+	return i <= 0 ? -ENODATA : i;
+}
+EXPORT_SYMBOL_GPL(of_property_read_string_helper);
+
+/**
  * of_property_read_string - Find and read a string from a property
  * @np:		device node from which the property value is to be read.
  * @propname:	name of the property to be searched.

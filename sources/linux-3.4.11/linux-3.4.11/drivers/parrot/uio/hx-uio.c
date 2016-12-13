@@ -363,6 +363,10 @@ static int hx_init_maps(struct hx_device* hxdev,
 	int                             err = -EBUSY;
 
 	hxdev->regs_res = NULL;
+	if (!regs_res) {
+		msg = "no registers";
+		goto err;
+	}
 
 	if (! request_mem_region(regs_res->start,
 	                         resource_size(regs_res),

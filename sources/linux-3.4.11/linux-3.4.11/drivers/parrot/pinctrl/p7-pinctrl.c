@@ -656,6 +656,8 @@ static int __devinit p7ctl_probe(struct platform_device* pdev)
 		return -ENOMEM;
 	}
 #endif
+	if (!res)
+		return -ENODEV;
 
 	p7ctl_paddr = res->start;
 	p7ctl_sz = resource_size(res);

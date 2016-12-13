@@ -113,9 +113,9 @@ static int __devinit p7i2cmux_probe(struct platform_device *pdev)
 	/* Add muxed adapters */
 	for (i = 0; i < mux->nchannels; i++) {
 		mux->channels[i].adap =
-			i2c_add_mux_adapter(mux->parent, mux,
+			i2c_add_mux_adapter(mux->parent, &pdev->dev, mux,
 			                    pdata->parent * 10 + i,
-			                    i,
+			                    i, 0,
 			                    p7i2cmux_select, p7i2cmux_deselect);
 
 		if (mux->channels[i].adap == NULL) {

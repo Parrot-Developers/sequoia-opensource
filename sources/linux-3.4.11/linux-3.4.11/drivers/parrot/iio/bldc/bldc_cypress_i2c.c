@@ -72,6 +72,12 @@ static int bldc_cypress_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void bldc_cypress_i2c_shutdown(struct i2c_client *client)
+{
+	struct iio_dev *indio_dev = i2c_get_clientdata(client);
+	bldc_cypress_shutdown(indio_dev);
+}
+
 /*
  * device id table is used to identify what device can be
  * supported by this driver
@@ -86,6 +92,7 @@ MODULE_DEVICE_TABLE(i2c, bldc_cypress_id);
 static struct i2c_driver bldc_cypress_driver = {
 	.probe		=	bldc_cypress_i2c_probe,
 	.remove		=	bldc_cypress_i2c_remove,
+	.shutdown	=	bldc_cypress_i2c_shutdown,
 	.id_table	=	bldc_cypress_id,
 	.driver = {
 		.owner	=	THIS_MODULE,

@@ -442,7 +442,7 @@ endif
 
 menuconfig MACH_PARROT_MPP
 	bool "Mpp board"
-	select ARCH_PARROT7_COMMON
+	select MACH_PARROT_DRONE_COMMON
 
 menuconfig MACH_PARROT_BEBOP
 	bool "Bebop board"

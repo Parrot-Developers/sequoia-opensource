@@ -211,6 +211,7 @@ extern struct klist *bus_get_device_klist(struct bus_type *bus);
  * can export information and configuration variables that are independent
  * of any specific device.
  */
+struct acpi_device_id;
 struct device_driver {
 	const char		*name;
 	struct bus_type		*bus;
@@ -221,6 +222,7 @@ struct device_driver {
 	bool suppress_bind_attrs;	/* disables bind/unbind via sysfs */
 
 	const struct of_device_id	*of_match_table;
+	const struct acpi_device_id     *acpi_match_table;
 
 	int (*probe) (struct device *dev);
 	int (*remove) (struct device *dev);
@@ -680,6 +682,9 @@ struct device {
 
 	void	(*release)(struct device *dev);
 };
+
+#define ACPI_HANDLE(dev)       (NULL)
+#define ACPI_HANDLE_SET(dev, _handle_) do { } while (0)
 
 /* Get the wakeup routines, which depend on struct device */
 #include <linux/pm_wakeup.h>
