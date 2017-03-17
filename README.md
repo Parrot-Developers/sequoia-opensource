@@ -1,5 +1,5 @@
 Open Source Software used in **Parrot Sequoia**.  
-Firmware version: **1.2.2**  
+Firmware version: **1.3.0**  
 Unless stated otherwise, later versions of the firmware
 use these same software modules.
 
@@ -13,7 +13,7 @@ You can download Open Source Archives from following table:
 |License|Package
 |---|---
 |GPL|[busybox](sources/busybox-unknown)
-|GPL|[libelf](sources/libelf-0.152)
+|GPL|[libelf](sources/libelf-0.167)
 |GPL|[ltrace](sources/ltrace-0.7.91)
 |GPL|[mtd](sources/mtd-1.5.1)
 |GPL|[procps](sources/procps-3.2.8)
@@ -27,7 +27,6 @@ You can download Open Source Archives from following table:
 |GPL2|[usbutils](sources/usbutils-006)
 |GPL2|[util-linux-ng](sources/util-linux-ng-2.28)
 |GPL2|[wireless_tools](sources/wireless_tools-29)
-|LGPL|[libc-arm-2012-03-fix](sources/libc-arm-2012-03-fix-unknown)
 |LGPL|[libconfig](sources/libconfig-1.5)
 |LGPL|[libnl](sources/libnl-3.2.24)
 |LGPL|[libnl2](sources/libnl2-2.0)
