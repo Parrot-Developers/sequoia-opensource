@@ -1,5 +1,5 @@
 Open Source Software used in **Parrot Sequoia**.  
-Firmware version: **1.3.1**  
+Firmware version: **1.3.2**  
 Unless stated otherwise, later versions of the firmware
 use these same software modules.
 
