@@ -1,5 +1,3 @@
-ifneq ($(TARGET_PRODUCT),sfx1) # libexif already exists in SFX1 project
-ifneq ($(TARGET_PRODUCT),thermoMAP) # libexif already exists in thermoMAP project
 
 LOCAL_PATH := $(call my-dir)
 
@@ -16,6 +14,3 @@ LOCAL_AUTOTOOLS_SUBDIR := libexif-$(LOCAL_AUTOTOOLS_VERSION)
 LOCAL_EXPORT_LDLIBS := -lexif
 
 include $(BUILD_AUTOTOOLS)
-
-endif
-endif

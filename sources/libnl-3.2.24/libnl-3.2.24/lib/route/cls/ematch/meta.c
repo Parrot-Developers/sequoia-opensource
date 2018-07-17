@@ -43,6 +43,9 @@ static struct rtnl_meta_value *meta_alloc(uint8_t type, uint16_t id,
 {
 	struct rtnl_meta_value *value;
 
+	if (data == NULL)
+		return NULL;
+
 	if (!(value = calloc(1, sizeof(*value) + len)))
 		return NULL;
 
